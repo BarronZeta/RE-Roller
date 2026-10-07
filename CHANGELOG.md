@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.9.2-rc2 - local candidate, not yet published
+## 0.9.2-rc2 - 2026-10-06
+
+Public pre-release. Includes the notification restoration from the private rc1
+build below, with the rc2 built-in typography and text-only styling.
 
 ### Changed
 
@@ -15,7 +18,7 @@
 - Added tests that reject a notice background/decoration and verify built-in
   font selection, outline flags, and fallback without consulting other addons.
 
-## 0.9.2-rc1 - local candidate, not yet published
+## 0.9.2-rc1 - private development build
 
 ### Fixed
 

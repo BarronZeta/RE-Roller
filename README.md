@@ -4,13 +4,13 @@
 
 A side-by-side ability and talent reroll planner for **Grimfall's custom World of Warcraft 3.3.5a client**, framed in the gold-and-stone Titan Reliquary interface.
 
-[**Download 0.9.1-rc1**](https://github.com/BarronZeta/RE-Roller/releases/download/v0.9.1-rc1/RE-Roller-0.9.1-rc1.zip) · [All releases](https://github.com/BarronZeta/RE-Roller/releases) · [Installation](#installation) · [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose)
+[**Download 0.9.2-rc2**](https://github.com/BarronZeta/RE-Roller/releases/download/v0.9.2-rc2/RE-Roller-0.9.2-rc2.zip) · [All releases](https://github.com/BarronZeta/RE-Roller/releases) · [Installation](#installation) · [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose)
 
 > **Compatibility:** Grimfall only. This addon relies on Grimfall's custom classless APIs; it is not a Retail, Classic, or generic WotLK addon. The current public build is a **release candidate**, not a claim of compatibility with every client update.
 
 ![RE: Roller by Vash running in Grimfall, with both history panels open and Hide Locked enabled](docs/images/ReRollPreview.png)
 
-*Live in-game capture from Grimfall, supplied by Vash. Both history panels are open and Hide Locked is enabled for abilities and talents. This screenshot shows the earlier Emblem typography; the 0.9.2-rc2 local candidate now uses WoW's built-in font.*
+*Live in-game capture from Grimfall, supplied by Vash. Both history panels are open and Hide Locked is enabled for abilities and talents. This screenshot shows the earlier Emblem typography; the current release uses WoW's built-in font.*
 
 ## What it does
 
@@ -22,6 +22,7 @@ A side-by-side ability and talent reroll planner for **Grimfall's custom World o
 - Open scrollable **Ability History** and **Talent History** panels to review what rolled off and what replaced it. Hover either spell's icon or name for its tooltip.
 - See your current custom specialization's name and icon when Grimfall provides them.
 - Use **Quick Animation**, Pause/Resume, Stop, and a bounded Recent Transformations area.
+- See fading, **text-only reroll announcements** with spell icons, without a notification box.
 - Move and resize the planner; drag its small launcher anywhere on screen.
 
 | Reroll type | Required item | Item ID |
@@ -34,7 +35,7 @@ The queue budgets one scroll per selected entry and checks the actual result bef
 ## Installation
 
 1. Close WoW.
-2. Download **`RE-Roller-0.9.1-rc1.zip`** from [Releases](https://github.com/BarronZeta/RE-Roller/releases/tag/v0.9.1-rc1). Choose the named addon ZIP, not GitHub's automatic **Source code** archives.
+2. Download **`RE-Roller-0.9.2-rc2.zip`** from [Releases](https://github.com/BarronZeta/RE-Roller/releases/tag/v0.9.2-rc2). Choose the named addon ZIP, not GitHub's automatic **Source code** archives.
 3. Extract the **`GrimfallReroll`** folder into your Grimfall game's `Interface/AddOns` directory.
 4. Check that the final path is `Interface/AddOns/GrimfallReroll/GrimfallReroll.toc`. Avoid nesting it inside another downloaded folder.
 5. Start WoW and enable **RE: Roller by Vash** in the character-selection AddOns list.
@@ -70,7 +71,7 @@ The **History** checkbox in each column opens its corresponding side panel. Scro
 
 History retains the most recent **100 confirmed rerolls total per character**, across abilities, talents, and specializations. The footer shows the latest three transformations.
 
-The **0.9.2-rc2 local candidate** restores a fading result notice above/in front of the planner, with spell icons and old-to-new names in WoW's built-in font. The notice has no background or border; a thin outline and shadow keep the text readable. Rapid results appear one at a time without slowing down rerolls. Long names wrap, and closing the planner clears the temporary notices without deleting history. The download linked above is still the published 0.9.1-rc1 release.
+Confirmed rerolls appear in a fading result notice above/in front of the planner, with spell icons and old-to-new names in WoW's built-in font. The notice has no background or border; a thin outline and shadow keep the text readable. Rapid results appear one at a time without slowing down rerolls. Long names wrap, and closing the planner clears the temporary notices without deleting history.
 
 ### Commands
 
@@ -86,7 +87,7 @@ The **0.9.2-rc2 local candidate** restores a fading result notice above/in front
 
 ## Fonts and requirements
 
-There are **no required companion addons**. The 0.9.2-rc2 local candidate uses **Friz Quadrata**, included with WoW, throughout the planner. Bundled **PT Sans** is the fallback if the game font cannot load; its license is included. Emblem and other addons' font registrations are no longer used. No global game fonts or other addons' files are changed.
+There are **no required companion addons**. RE: Roller uses **Friz Quadrata**, included with WoW, throughout the planner. Bundled **PT Sans** is the fallback if the game font cannot load; its license is included. Emblem and other addons' font registrations are no longer used. No global game fonts or other addons' files are changed.
 
 Quick Animation only shortens the presentation for this addon's pending reroll. It preserves the client's result callbacks and does not bypass server confirmation or scroll costs.
 
@@ -96,7 +97,7 @@ Quick Animation only shortens the presentation for this addon's pending reroll. 
 - **A locked entry disappeared:** turn off Hide Locked and clear the search box.
 - **The reroll button is unavailable:** check that you selected unlocked entries, have enough of that column's scrolls in your bags, are alive and out of combat, and have no pending result.
 - **The queue stops:** read the planner's status line, then use `/rr diagnose`. The addon stops on uncertain results, server errors, or changes to your build instead of blindly sending another request.
-- **The font differs from the preview:** the live screenshot shows the earlier Emblem font. The 0.9.2-rc2 local candidate deliberately uses WoW's built-in font instead.
+- **The font differs from the preview:** the live screenshot shows the earlier Emblem font. The current release deliberately uses WoW's built-in font instead.
 
 [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose) with your version, reproduction steps, and the exact error/status message. Screenshots help; crop private chat or account details. Do not upload your whole `WTF` folder or account files.
 
