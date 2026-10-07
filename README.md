@@ -4,7 +4,7 @@
 
 A side-by-side ability and talent reroll planner for **Grimfall's custom World of Warcraft 3.3.5a client**, framed in the gold-and-stone Titan Reliquary interface.
 
-[**Download Addon Only — Ready to Install (0.9.2-rc2)**](https://github.com/BarronZeta/RE-Roller/releases/download/v0.9.2-rc2/RE-Roller-0.9.2-rc2.zip)
+[**Download Addon Only — Ready to Install (0.9.2-rc3)**](https://github.com/BarronZeta/RE-Roller/releases/download/v0.9.2-rc3/RE-Roller-0.9.2-rc3.zip)
 
 Unzip, then copy the **`GrimfallReroll`** folder into your game's **`Interface/AddOns`** folder. This player download contains only the addon and its required assets/license notices—no tests, development tools, or preview images.
 
@@ -41,9 +41,9 @@ The queue budgets one scroll per selected entry and checks the actual result bef
 ## Installation
 
 1. Close WoW.
-2. [**Download the addon-only ZIP**](https://github.com/BarronZeta/RE-Roller/releases/download/v0.9.2-rc2/RE-Roller-0.9.2-rc2.zip). You do not need any other downloads.
+2. [**Download the addon-only ZIP**](https://github.com/BarronZeta/RE-Roller/releases/download/v0.9.2-rc3/RE-Roller-0.9.2-rc3.zip). You do not need any other downloads.
 3. Unzip it and copy the **`GrimfallReroll`** folder into your Grimfall game's `Interface/AddOns` directory. Alternatively, extract the ZIP directly into `Interface/AddOns`.
-4. Check that the final path is `Interface/AddOns/GrimfallReroll/GrimfallReroll.toc`. If your unzip program creates an extra `RE-Roller-0.9.2-rc2` folder, move only the `GrimfallReroll` folder inside it—not that extra outer folder.
+4. Check that the final path is `Interface/AddOns/GrimfallReroll/GrimfallReroll.toc`. If your unzip program creates an extra `RE-Roller-0.9.2-rc3` folder, move only the `GrimfallReroll` folder inside it—not that extra outer folder.
 5. Start WoW and enable **RE: Roller by Vash** in the character-selection AddOns list.
 6. Enter the game and type **`/rr`**, or click the dice launcher.
 
