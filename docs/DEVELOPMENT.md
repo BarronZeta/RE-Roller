@@ -5,7 +5,9 @@
 - `GrimfallReroll/`: installable addon, including art and licensed fallback fonts.
 - `tests/`: mocked game APIs and regression tests; no account data or client code.
 - `scripts/`: portable validation and ZIP packaging.
-- `docs/images/`: offline layout previews, excluded from the installable ZIP.
+- `docs/images/`: the live in-game screenshot used on the project page and older
+  offline layout previews, all excluded from the installable ZIP. See the
+  [image provenance notes](images/README.md).
 - `dist/`: generated release ZIP, SHA-256 checksum, and per-file manifest (gitignored).
 
 ## Run the checks

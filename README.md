@@ -8,9 +8,9 @@ A side-by-side ability and talent reroll planner for **Grimfall's custom World o
 
 > **Compatibility:** Grimfall only. This addon relies on Grimfall's custom classless APIs; it is not a Retail, Classic, or generic WotLK addon. The current public build is a **release candidate**, not a claim of compatibility with every client update.
 
-![RE: Roller Titan Reliquary interface with both history panels open](docs/images/titan-reliquary-preview.png)
+![RE: Roller by Vash running in Grimfall, with both history panels open and Hide Locked enabled](docs/images/ReRollPreview.png)
 
-*Offline layout preview with sample spells and history, not a live game capture. Fonts and spell icons can differ with your installation. Emblem is used when available; a readable fallback is included.*
+*Live in-game capture from Grimfall, supplied by Vash. Both history panels are open and Hide Locked is enabled for abilities and talents. Emblem is used when available; a readable fallback is included.*
 
 ## What it does
 
@@ -63,15 +63,6 @@ The internal folder remains **`GrimfallReroll`** for compatibility. Do not renam
 Use the checkbox beside either section heading to hide that section's protected entries. Both filters default to off, are remembered independently, and work together with search. Turn a filter off to see and unlock a protected entry again.
 
 Protection locks belong to each **character + realm + specialization slot**. The Hide Locked switches themselves are display preferences shared across specializations; they always filter using the active specialization's locks.
-
-<details>
-<summary>Preview with locked entries hidden</summary>
-
-![Hide Locked enabled for abilities and talents](docs/images/hide-locked-preview.png)
-
-*Offline layout preview using sample data.*
-
-</details>
 
 ### History and announcements
 
