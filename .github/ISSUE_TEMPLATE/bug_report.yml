@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a problem with RE: Roller on Grimfall.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: Please crop private chat/account details from screenshots. Do not upload your whole WTF folder or saved variables.
+  - type: input
+    id: version
+    attributes:
+      label: "RE: Roller version"
+      placeholder: 0.9.1-rc1
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Grimfall client version or build, if known
+      placeholder: Unknown is fine.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you click or select immediately before the issue?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Exact error or planner status
+      description: Paste any Lua error and the status from /rr diagnose. Remove personal details.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots and other relevant addons
+      description: Attach cropped screenshots, if useful. Mention whether this occurs with only RE: Roller enabled.

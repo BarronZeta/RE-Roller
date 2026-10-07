@@ -1,0 +1,12 @@
+## Interface: 30300
+## Title: RE: Roller by Vash
+## Notes: Side-by-side learned abilities and talents, protection locks and a confirmed reroll queue.
+## Version: 0.9.1-rc1
+## Author: Vash
+## SavedVariables: GrimfallRerollDB
+Model.lua
+Client.lua
+Presentation.lua
+Skin.lua
+UI.lua
+Core.lua

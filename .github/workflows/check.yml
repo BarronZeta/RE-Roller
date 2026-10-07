@@ -1,0 +1,20 @@
+name: Addon checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - name: Validate and package the addon
+        shell: pwsh
+        run: ./scripts/Build-Package.ps1 -LuaCommand lua5.1

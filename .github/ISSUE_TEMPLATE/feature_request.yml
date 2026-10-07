@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an improvement to RE: Roller.
+title: "[Idea]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to improve?
+      description: Describe the player problem or inconvenience.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed behavior
+      description: How would you like it to work?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Examples or additional context

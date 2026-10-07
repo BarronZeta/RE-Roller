@@ -1,0 +1,33 @@
+RE: Roller by Vash - third-party and asset notes
+
+Original addon code, test code, packaging scripts and documentation are
+distributed under the MIT License. See LICENSE.txt in the addon ZIP or
+LICENSE at the repository root.
+
+FONTS
+PT Sans and PT Serif: Copyright (c) 2010, ParaType Ltd.
+The unmodified bundled font files are distributed under SIL OFL 1.1, not MIT.
+The full notices and license terms are in Fonts/ptsans-OFL.txt and
+Fonts/ptserif-OFL.txt. Source:
+https://github.com/google/fonts/tree/main/ofl/ptsans
+https://github.com/google/fonts/tree/main/ofl/ptserif
+
+Emblem is NOT distributed by this project. It is used only if a compatible
+font is already installed or registered through LibSharedMedia. No rights
+to redistribute Emblem are granted by this package.
+
+ART AND PREVIEWS
+The Titan Reliquary interface artwork was supplied for this project through
+an AI-assisted visual design process and sliced from the approved FinalLayout
+reference. It is included for use with the addon. The MIT statement above
+describes the original code and documentation; it does not assert ownership
+of third-party imagery, brands, or font designs.
+
+The addon obtains spell and item icons from the running game's APIs. It does
+not bundle extracted game/client code or a collection of game spell icons.
+Repository preview PNGs use sample data and reference icons for illustration;
+they are offline layout previews, not native game screenshots. Preview PNGs
+are not shipped inside the installable addon ZIP.
+
+World of Warcraft and related names are trademarks of their respective
+owners. This community addon does not claim Blizzard or Grimfall endorsement.

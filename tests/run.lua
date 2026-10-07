@@ -1,0 +1,20 @@
+-- Run from the repository root with Lua 5.1: lua5.1 tests/run.lua
+-- All game APIs are mocked. This never connects to a client or game server.
+dofile('tests/Test-Reroll.lua')
+dofile('GrimfallReroll/Model.lua')
+dofile('GrimfallReroll/Client.lua')
+dofile('GrimfallReroll/Presentation.lua')
+RunTests()
+dofile('GrimfallReroll/Skin.lua')
+dofile('GrimfallReroll/UI.lua')
+RunUITests()
+dofile('tests/Test-History.lua')
+RunHistoryTests()
+dofile('tests/Test-Skin.lua')
+dofile('tests/Test-Polish.lua')
+dofile('tests/Test-HideLocked.lua')
+dofile('GrimfallReroll/Core.lua')
+RunCoreTests()
+for _, result in ipairs(results) do print(result) end
+FinishTests()
+print('PASS: '..#results..' offline behavior/layout tests; mock APIs only.')

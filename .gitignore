@@ -1,0 +1,27 @@
+# Generated packages and local tool caches
+/dist/
+/.tools/
+/artifacts/
+*.log
+*.tmp
+*.bak
+*.zip
+__pycache__/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Never publish game installations, account data, local backups or credentials
+WTF/
+Cache/
+Logs/
+SavedVariables/
+backups/
+diagnostics/
+install-receipt.json
+GrimfallRerollDB*
+.env
+.env.*
+*.pem
+*.key
