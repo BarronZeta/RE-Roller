@@ -1,4 +1,4 @@
-param([string]$LuaCommand='', [string]$MoonSharpPath='')
+param([string]$LuaCommand='', [string]$MoonSharpPath='', [string]$OutputDirectory='')
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 & (Join-Path $PSScriptRoot 'Test.ps1') -LuaCommand $LuaCommand -MoonSharpPath $MoonSharpPath
@@ -6,7 +6,7 @@ $addon=Join-Path $root 'GrimfallReroll'
 $versionLine=Get-Content -LiteralPath (Join-Path $addon 'GrimfallReroll.toc')|Where-Object {$_ -match '^## Version: '}
 $version=($versionLine -replace '^## Version: ','').Trim()
 if($version -notmatch '^\d+\.\d+\.\d+(-[a-z0-9.-]+)?$'){throw 'Unexpected addon version.'}
-$dist=Join-Path $root 'dist'
+$dist=if($OutputDirectory){[IO.Path]::GetFullPath($OutputDirectory)}else{Join-Path $root 'dist'}
 $null=New-Item -ItemType Directory -Path $dist -Force
 $zip=Join-Path $dist ('RE-Roller-'+$version+'.zip')
 if(Test-Path -LiteralPath $zip){throw 'This package already exists. Use a clean checkout for a rebuild; never silently replace a published artifact.'}

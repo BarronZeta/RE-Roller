@@ -10,7 +10,7 @@ A side-by-side ability and talent reroll planner for **Grimfall's custom World o
 
 ![RE: Roller by Vash running in Grimfall, with both history panels open and Hide Locked enabled](docs/images/ReRollPreview.png)
 
-*Live in-game capture from Grimfall, supplied by Vash. Both history panels are open and Hide Locked is enabled for abilities and talents. Emblem is used when available; a readable fallback is included.*
+*Live in-game capture from Grimfall, supplied by Vash. Both history panels are open and Hide Locked is enabled for abilities and talents. This screenshot shows the earlier Emblem typography; the 0.9.2-rc2 local candidate now uses WoW's built-in font.*
 
 ## What it does
 
@@ -68,7 +68,9 @@ Protection locks belong to each **character + realm + specialization slot**. The
 
 The **History** checkbox in each column opens its corresponding side panel. Scroll with the mouse wheel or scrollbar; **Newest** returns to the latest entry. Each confirmed record shows **From** and **To**, with separate spell tooltips.
 
-History retains the most recent **100 confirmed rerolls total per character**, across abilities, talents, and specializations. The footer shows the latest three transformations without an overflowing floating overlay.
+History retains the most recent **100 confirmed rerolls total per character**, across abilities, talents, and specializations. The footer shows the latest three transformations.
+
+The **0.9.2-rc2 local candidate** restores a fading result notice above/in front of the planner, with spell icons and old-to-new names in WoW's built-in font. The notice has no background or border; a thin outline and shadow keep the text readable. Rapid results appear one at a time without slowing down rerolls. Long names wrap, and closing the planner clears the temporary notices without deleting history. The download linked above is still the published 0.9.1-rc1 release.
 
 ### Commands
 
@@ -84,7 +86,7 @@ History retains the most recent **100 confirmed rerolls total per character**, a
 
 ## Fonts and requirements
 
-There are **no required companion addons**. If Emblem is available through LibSharedMedia or an installed `VuhDo/Fonts/Emblem.ttf`, RE: Roller uses it. Emblem is not bundled. Otherwise, bundled **PT Sans** provides the fallback; its license is included. No global game fonts are changed.
+There are **no required companion addons**. The 0.9.2-rc2 local candidate uses **Friz Quadrata**, included with WoW, throughout the planner. Bundled **PT Sans** is the fallback if the game font cannot load; its license is included. Emblem and other addons' font registrations are no longer used. No global game fonts or other addons' files are changed.
 
 Quick Animation only shortens the presentation for this addon's pending reroll. It preserves the client's result callbacks and does not bypass server confirmation or scroll costs.
 
@@ -94,7 +96,7 @@ Quick Animation only shortens the presentation for this addon's pending reroll. 
 - **A locked entry disappeared:** turn off Hide Locked and clear the search box.
 - **The reroll button is unavailable:** check that you selected unlocked entries, have enough of that column's scrolls in your bags, are alive and out of combat, and have no pending result.
 - **The queue stops:** read the planner's status line, then use `/rr diagnose`. The addon stops on uncertain results, server errors, or changes to your build instead of blindly sending another request.
-- **The font differs from the preview:** Emblem is optional; the bundled fallback is expected when it is unavailable.
+- **The font differs from the preview:** the live screenshot shows the earlier Emblem font. The 0.9.2-rc2 local candidate deliberately uses WoW's built-in font instead.
 
 [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose) with your version, reproduction steps, and the exact error/status message. Screenshots help; crop private chat or account details. Do not upload your whole `WTF` folder or account files.
 

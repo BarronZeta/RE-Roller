@@ -13,6 +13,7 @@ RunHistoryTests()
 dofile('tests/Test-Skin.lua')
 dofile('tests/Test-Polish.lua')
 dofile('tests/Test-HideLocked.lua')
+dofile('tests/Test-Notices.lua')
 dofile('GrimfallReroll/Core.lua')
 RunCoreTests()
 for _, result in ipairs(results) do print(result) end

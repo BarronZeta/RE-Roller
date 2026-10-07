@@ -32,14 +32,25 @@ test('display refresh follows spec rename and icon changes while the planner is 
  assert(R.window.spec:GetText()=='Custom Build' and R.window.specIcon.texture:find('FrostBolt02',1,true) and #calls==0)
  GetSpecializationInfo=info
 end)
-test('Emblem uses installed/shared media without redistribution and falls back if unavailable',function()
- local R=reset();local stub=LibStub;local seen={};local object={SetFont=function(_,path) seen[#seen+1]=path;return path:find('PT_Sans',1,true)~=nil end}
- LibStub=nil;local chosen=R.Presentation:SetFont(object,14)
- assert(seen[1]=='Interface\\AddOns\\VuhDo\\Fonts\\Emblem.ttf' and chosen:find('PT_Sans',1,true))
- LibStub=function() return {Fetch=function(_,kind,name,noDefault) assert(kind=='font' and name=='Emblem' and noDefault);return 'Shared\\Emblem.ttf' end} end
- object.SetFont=function(_,path) return true end
- assert(R.Presentation:SetFont(object,14)=='Shared\\Emblem.ttf')
- LibStub=stub
+test('built-in font is used even when another addon supplies Emblem',function()
+ local R=reset();local stub=LibStub;local fetched=false;local seen={}
+ LibStub=function() fetched=true;return {Fetch=function() return 'Shared\\Emblem.ttf' end} end
+ local object={SetFont=function(_,path,size,flags) seen[#seen+1]=path;assert(size==14 and flags=='');return true end}
+ local chosen=R.Presentation:SetFont(object,14);LibStub=stub
+ assert(chosen=='Fonts\\FRIZQT__.TTF' and #seen==1 and not fetched)
+end)
+
+test('bundled font fallback preserves notice outline if the built-in face cannot load',function()
+ local R=reset()
+ for _,failsWithError in ipairs({false,true}) do
+  local seen={};local object={SetFont=function(_,path,size,flags)
+   seen[#seen+1]=path;assert(size==22 and flags=='OUTLINE')
+   if path=='Fonts\\FRIZQT__.TTF' then if failsWithError then error('Unavailable font') end;return false end
+   return true
+  end}
+  local chosen=R.Presentation:SetFont(object,22,'OUTLINE')
+  assert(#seen==2 and seen[1]=='Fonts\\FRIZQT__.TTF' and chosen=='Interface\\AddOns\\GrimfallReroll\\Fonts\\PT_Sans-Web-Regular.ttf')
+ end
 end)
 test('both sections share centered action columns and fixed control widths',function()
  local R=reset();local w=R.window

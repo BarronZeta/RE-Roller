@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.9.2-rc2 - local candidate, not yet published
+
+### Changed
+
+- Replaced Emblem with WoW's included Friz Quadrata throughout the planner.
+  Removed shared-media and VuhDo font discovery; bundled PT Sans remains the
+  fallback if the built-in font cannot load.
+- Removed the floating result notice's background, border, heading and divider.
+  Only centered old-to-new spell text and icons remain, with a thin outline
+  and shadow for readability over the game world.
+- Preserved notice ordering, wrapping, fading, screen clamping, and independence
+  from reroll timing. Artwork, saved data, and reroll behavior are unchanged.
+- Added tests that reject a notice background/decoration and verify built-in
+  font selection, outline flags, and fallback without consulting other addons.
+
+## 0.9.2-rc1 - local candidate, not yet published
+
+### Fixed
+
+- Restored the fading reroll result notice above/in front of the planner. The
+  previous layout revision had removed it, leaving chat and footer results only.
+- Confirmed results display one at a time, with spell icons, centered Emblem or
+  fallback text, and gold ability / violet talent accents.
+- Long names wrap inside an automatically measured notice. Foreground layering
+  and screen clamping keep the notice visible, including near the screen edge.
+- Notification timing is independent of reroll timing. Closing the planner
+  clears pending notices; late confirmations still save to chat and history.
+
+### Validation
+
+- Added regression coverage for ordered bursts, fade/reuse, wrapping/resizing,
+  hidden results, Quick Animation off, and separation from real reroll state.
+- No artwork, font assets, lock schema, saved settings, or request/confirmation
+  logic changed. Native game rendering still needs an in-game visual check.
+
 ## 0.9.1-rc1 - 2026-10-06
 
 First public GitHub release of RE: Roller by Vash.

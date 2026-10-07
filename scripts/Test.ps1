@@ -2,9 +2,13 @@ param([string]$LuaCommand='', [string]$MoonSharpPath='')
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $addon=Join-Path $root 'GrimfallReroll'
-$baseline=Get-Content -LiteralPath (Join-Path $root 'tests/fixtures/release-0.9.1-rc1.json') -Raw|ConvertFrom-Json
+$versionLine=Get-Content -LiteralPath (Join-Path $addon 'GrimfallReroll.toc')|Where-Object {$_ -match '^## Version: '}
+$version=($versionLine -replace '^## Version: ','').Trim()
+if($version -notmatch '^\d+\.\d+\.\d+(-[a-z0-9.-]+)?$'){throw 'Unexpected addon version.'}
+$baseline=Get-Content -LiteralPath (Join-Path $root ('tests/fixtures/release-'+$version+'.json')) -Raw|ConvertFrom-Json
 $extra=@('LICENSE.txt','THIRD_PARTY_NOTICES.txt')
-$allowed=@($baseline|ForEach-Object {$_.name})+$extra
+$allowed=@($baseline|ForEach-Object {$_.name})
+$allowed+=@($extra|Where-Object {$_ -notin $allowed})
 $files=@(Get-ChildItem -LiteralPath $addon -File -Recurse)
 if($files.Count -ne $allowed.Count){throw "Expected $($allowed.Count) addon files; found $($files.Count)."}
 foreach($file in $files){
@@ -16,7 +20,7 @@ foreach($entry in $baseline){
  if(!(Test-Path -LiteralPath $path)){throw "Missing baseline member: $($entry.name)"}
  if((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $entry.sha256){throw "Runtime baseline changed: $($entry.name). Review and update the release baseline deliberately."}
 }
-Write-Output "PASS: all $($baseline.Count) original runtime/package files match the tested 0.9.1-rc1 baseline."
+Write-Output "PASS: all $($baseline.Count) runtime/package files match the reviewed $version baseline."
 if((Get-FileHash -LiteralPath (Join-Path $root 'LICENSE')).Hash -ne (Get-FileHash -LiteralPath (Join-Path $addon 'LICENSE.txt')).Hash){throw 'Repository and packaged MIT licenses differ.'}
 foreach($line in Get-Content -LiteralPath (Join-Path $addon 'GrimfallReroll.toc')){
  if($line.Trim() -and !$line.StartsWith('#') -and !(Test-Path -LiteralPath (Join-Path $addon $line.Trim()))){throw "Missing TOC reference: $line"}
@@ -58,7 +62,7 @@ try {
   [void]$vm.DoString('RunUITests()')
   [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-History.lua' -Raw))
   [void]$vm.DoString('RunHistoryTests()')
-  foreach($name in @('Test-Skin.lua','Test-Polish.lua','Test-HideLocked.lua')){[void]$vm.DoString((Get-Content -LiteralPath (Join-Path 'tests' $name) -Raw))}
+  foreach($name in @('Test-Skin.lua','Test-Polish.lua','Test-HideLocked.lua','Test-Notices.lua')){[void]$vm.DoString((Get-Content -LiteralPath (Join-Path 'tests' $name) -Raw))}
   [void]$vm.DoString((Get-Content -LiteralPath (Join-Path $addon 'Core.lua') -Raw))
   [void]$vm.DoString('RunCoreTests()')
   $results=@($vm.Globals.Get('results').Table.Values)

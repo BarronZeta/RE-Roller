@@ -57,6 +57,8 @@ function methods:SetAllPoints(target) self:SetPoint('TOPLEFT',target or self.par
 function methods:SetBackdrop(v) self.backdrop=v end
 function methods:SetBackdropBorderColor(...) self.borderColor={...} end
 function methods:SetTextColor(...) self.textColor={...} end
+function methods:SetShadowColor(...) self.shadowColor={...} end
+function methods:SetShadowOffset(...) self.shadowOffset={...} end
 function methods:GetName() return self.name end
 function methods:GetPoint() return unpack(self.point or {'CENTER',UIParent,'CENTER',0,0}) end
 function methods:GetCenter() return 500,400 end
@@ -89,6 +91,8 @@ function methods:SetVertexColor(...) self.vertexColor={...} end
 function methods:SetAlpha(a) self.alpha=a end
 function methods:GetAlpha() return rawget(self,'alpha') or 1 end
 function methods:SetFrameStrata(v) self.strata=v end
+function methods:SetClampedToScreen(v) self.clamped=v end
+function methods:EnableMouse(v) self.mouseEnabled=v end
 function methods:SetBackdropColor(...) self.backdropColor={...} end
 function methods:SetTexture(v) self.texture=v end
 function methods:SetTexCoord(...) self.coords={...} end
@@ -121,6 +125,7 @@ function Fire(event,...)
 end
 function reset()
  local R=GrimfallReroll
+ if R.ClearNotice then R:ClearNotice() end
  clock=0; calls={}; known={101,102}; talents={[201]={class=1,spell=301}}; spec=1; combat=false; dead=false; requestAllowed=true; talentAllowed=true
  scrollCounts={[640]=10,[639]=10}; RandomMode_RollFrame=nil
  R.pending=nil; R.running=false; R.queue={}; R.selected={}; R.spec=nil; R.ready=false; R.expected=nil; R.status='Ready'; R.done=0; R.total=0; R.manual=nil
@@ -231,6 +236,7 @@ function RunTests()
 end
 function RunUITests()
  local realNotify=GrimfallReroll.Notify
+ RealNotifyForTests=realNotify
  test('real UI creates Blizzard-styled independent columns with no GGA/Vashworks dependency',function()
   local R=reset(); R.window=nil; R:CreateUI(); R.window:Show(); R:Render()
   assert(R.window.panels.ability and R.window.panels.talent and #R.window.panels.ability.rows==2 and #R.window.panels.talent.rows==1)
@@ -245,7 +251,7 @@ function RunUITests()
   assert(R.window.title:GetText()=='RE: Roller by Vash' and R.window.backdropColor[4]==1)
   for _,p in pairs(R.window.panels) do assert(p.search.template==nil and p.search.backdropColor[4]==1 and p.placeholder:IsShown()) end
  end)
- test('Emblem headings and body keep body, metadata and button sizes consistent',function()
+ test('built-in headings and body keep body, metadata and button sizes consistent',function()
   local R=reset(); local w=R.window
   assert(w.title.fontObject.fontSize==30 and w.title.justifyH=='LEFT' and w.title.justifyV=='MIDDLE')
   assert(w.title.point[1]=='TOPRIGHT' and w.title.height==32)
@@ -253,7 +259,7 @@ function RunUITests()
    assert(p.title.fontObject.fontSize==20 and p.title.height==p.count.height and p.title.point[3]==p.count.point[3])
    assert(p.search.fontObject.fontSize==14 and p.placeholder.fontObject.fontSize==12)
    assert(p.rows[1].name.fontObject.fontSize==14 and p.rows[1].name.wordWrap==false and p.rows[1].name.justifyV=='MIDDLE')
-   assert(p.budget.fontObject.fontPath=='Interface\\AddOns\\VuhDo\\Fonts\\Emblem.ttf' and p.budget.fontObject.fontSize==14)
+   assert(p.budget.fontObject.fontPath=='Fonts\\FRIZQT__.TTF' and p.budget.fontObject.fontSize==14)
    assert(p.cost.fontObject.fontSize==12 and p.cost.height==22 and p.start.height==32)
    assert(p.start.normalFont.fontSize==14 and p.start.disabledFont.fontSize==14 and p.start.highlightFont.fontSize==14)
   end
@@ -308,13 +314,14 @@ function RunUITests()
   assert(R.window.panels.ability.start.enabled and not R.window.panels.talent.start.enabled)
   R.window.panels.ability.start.scripts.OnClick(); assert(#calls==1 and calls[1][1]=='ability' and R.selected['T:201'])
  end)
- test('confirmed result highlights the in-planner announcement; no floating box is created',function()
-  local R=reset(); R.window:Show(); R.notice=nil
+ test('confirmed result shows a foreground notice and also highlights the in-planner announcement',function()
+  local R=reset(); R.window:Show()
   local record={oldID=101,newID=102,oldName='Old',newName='New',spent=1,kind='ability'}
   R.character.history={record}; realNotify(R,record)
-  assert(not R.notice and R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1].record==record)
-  clock=7; R.window.scripts.OnUpdate()
-  assert(not R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1]:IsShown() and #calls==0)
+  assert(R.notice:IsShown() and R.notice.record==record and R.notice.strata=='FULLSCREEN_DIALOG')
+  assert(R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1].record==record)
+  clock=7; R.window.scripts.OnUpdate(); R.notice.scripts.OnUpdate()
+  assert(not R.notice:IsShown() and not R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1]:IsShown() and #calls==0)
  end)
  test('rapid multiple results remain bounded to three measured rows and all stay in full history',function()
   local R=reset(); local w=R.window
@@ -323,7 +330,7 @@ function RunUITests()
    local record={oldName=string.rep('Long ability name ',12)..i,newName=string.rep('Long replacement name ',12)..i,oldID=101,newID=102,kind=i%2==0 and 'talent' or 'ability',spent=1}
    table.insert(R.character.history,1,record); realNotify(R,record)
   end
-  assert(#R.character.history==10 and #w.historyRows==3 and not R.notice)
+  assert(#R.character.history==10 and #w.historyRows==3 and R.notice:IsShown() and #R.noticeQueue==9)
   assert(w.historyRows[1].record==R.character.history[1] and w.historyRows[3].record==R.character.history[3])
   local used=0
   for _,row in ipairs(w.historyRows) do
@@ -357,11 +364,12 @@ function RunUITests()
   assert(w.announcementScroll:GetVerticalScroll()==0 and #calls==0)
  end)
  test('late results with planner closed go to chat and history without reopening any overlay',function()
-  local R=reset(); local w=R.window; w:Hide(); R.notice=CreateFrame('Frame'); local old=R.notice
+  local R=reset(); local w=R.window
   local record={oldID=101,newID=102,oldName='Old',newName='New',spent=1,kind='ability'}
+  realNotify(R,record); local notice=R.notice; w:Hide()
   R.character.history={record}; realNotify(R,record)
-  assert(not old:IsShown() and not R.notice and not w:IsShown() and #calls==0)
-  w:Show(); R:Render(); assert(w.historyRows[1].record==record)
+  assert(not notice:IsShown() and not notice.record and #R.noticeQueue==0 and not w:IsShown() and #calls==0)
+  w:Show(); R:Render(); assert(w.historyRows[1].record==record and not notice:IsShown())
  end)
  test('launcher is 32px, opens on click, saves free-drag position, and does not click after dragging',function()
   local R=reset(); R.launcher=nil; R:CreateLauncher(); local b=R.launcher

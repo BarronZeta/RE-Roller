@@ -1,4 +1,25 @@
-RE: Roller by Vash 0.9.1-rc1 - Hide Locked filters
+RE: Roller by Vash 0.9.2-rc2 - Built-in font and text-only notices
+
+NEW IN 0.9.2-rc2
+- Uses WoW's included Friz Quadrata font throughout the planner. No Emblem,
+  VuhDo font paths or LibSharedMedia font lookups are used.
+- The floating notice shows only old -> new text and spell icons. No black
+  background, border, heading or decorative divider remains.
+- A thin outline and shadow keep results readable over the game world.
+- Result colors, wrapping, fading and one-at-a-time presentation are retained.
+- Reroll timing, history, locks, filters, artwork and window settings are unchanged.
+
+NEW IN 0.9.2
+- Restored the fading result notice above/in front of the planner, with both
+  spell icons and clear old -> new text (font updated in rc2 above).
+- Ability results use gold; talent results use violet. Long names wrap inside
+  an automatically sized, click-through notice kept on screen.
+- Rapid confirmed results are announced one at a time, independently of the
+  reroll queue. Reading/fading a notice never holds up another reroll.
+- Closing the planner clears visible/queued notices. Late confirmed results
+  still go to chat and saved history without reopening the planner.
+- Recent Transformations and both history panels remain available as before.
+- No changes to artwork, protection locks, saved settings or reroll requests.
 
 NEW IN 0.9.1
 - Hide Locked checkbox beside each Abilities / Talents heading.
@@ -24,11 +45,11 @@ NEW IN 0.9.0
   sizes, a subtle dark shadow and brighter secondary labels.
 
 FONT AVAILABILITY
-Emblem is resolved from LibSharedMedia, then the user's installed
-Interface\AddOns\VuhDo\Fonts\Emblem.ttf. VuhDo need not be enabled, but that
-font file must remain installed. Emblem itself is NOT redistributed in the ZIP.
-If Emblem is absent/unloadable, bundled PT Sans keeps all text readable.
-This update changes no global game fonts and adds no required addon dependency.
+The current build uses Fonts\FRIZQT__.TTF, included with WoW. If that font
+cannot load, bundled PT Sans is the fallback. No external font addon is needed.
+RE: Roller no longer requests Emblem or reads font paths from other addons.
+Other addons and their font files are not changed or removed by this update.
+No global game fonts are changed.
 
 Artwork is now extracted directly from the approved FinalLayout.png.
 No replacement AI artwork was generated for this revision.

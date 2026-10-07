@@ -59,10 +59,10 @@ test('ornament bounds stay on-screen for all states, sizes and edge positions',f
   end
  end
 end)
-test('source button artwork is preserved while all labels use Emblem',function()
+test('source button artwork is preserved while all labels use the built-in font',function()
  local R=reset();local w=R.window
- assert(w.title.fontObject.fontPath:find('Emblem.ttf',1,true))
- assert(w.panels.ability.rows[1].name.fontObject.fontPath:find('Emblem.ttf',1,true))
+ assert(w.title.fontObject.fontPath=='Fonts\\FRIZQT__.TTF')
+ assert(w.panels.ability.rows[1].name.fontObject.fontPath=='Fonts\\FRIZQT__.TTF')
  for _,b in ipairs(R.uiButtons) do assert(b.buttonArt and b.buttonArt.texture:find('Art\\',1,true)) end
  assert(w.panels.ability.rows[1].box.texture:find('Unchecked',1,true))
  assert(#calls==0)

@@ -12,9 +12,9 @@ Fonts/ptserif-OFL.txt. Source:
 https://github.com/google/fonts/tree/main/ofl/ptsans
 https://github.com/google/fonts/tree/main/ofl/ptserif
 
-Emblem is NOT distributed by this project. It is used only if a compatible
-font is already installed or registered through LibSharedMedia. No rights
-to redistribute Emblem are granted by this package.
+The current addon uses Friz Quadrata from the player's existing WoW client;
+that game font is not redistributed by this project. PT Sans is the bundled
+fallback. Emblem is neither bundled nor requested by the current addon.
 
 ART AND PREVIEWS
 The Titan Reliquary interface artwork was supplied for this project through
