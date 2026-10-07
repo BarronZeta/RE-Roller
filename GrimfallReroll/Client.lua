@@ -48,7 +48,7 @@ function C:Safe()
     if not self:Spec() then return false,'Active specialization is unknown.' end
     return true
 end
-function C:Snapshot()
+local function readSnapshot(self)
     local spec=self:Spec(); if not spec then return nil,'Cannot identify the active specialization.' end
     local ok,raw=call(GetKnownClasslessSpellIds)
     if not ok or (type(raw)~='table' and type(raw)~='number' and type(raw)~='string') then return nil,'Grimfall learned-ability API unavailable. No rerolls enabled.' end
@@ -110,6 +110,25 @@ function C:Snapshot()
         return a.name<b.name
     end)
     return snap
+end
+function C:Snapshot()
+    local started=debugprofilestop and debugprofilestop() or 0
+    local snapshot,reason=readSnapshot(self)
+    R:MeasureWork('snapshot',started)
+    return snapshot,reason
+end
+function C:PerformanceReport()
+    local p=R.performance or {}
+    local lines={'RE: Roller '..R.version..' performance (this session):'}
+    for _,kind in ipairs({'snapshot','render'}) do
+        local s=p[kind] or {calls=0,totalMS=0,maxMS=0}
+        lines[#lines+1]=string.format('%s: %d calls; average %.2f ms; max %.2f ms.',kind,s.calls,s.calls>0 and s.totalMS/s.calls or 0,s.maxMS)
+    end
+    lines[#lines+1]=string.format('While rolling: %d frame gaps over 250 ms; largest %.2f s. Quick animation: %s.',p.slowFrames or 0,p.maxFrameGap or 0,R.db.fast and 'on' or 'off')
+    lines[#lines+1]='Frame gaps include the game and other addons; they do not identify the cause by themselves.'
+    if not debugprofilestop then lines[#lines+1]='Client timing API unavailable; work counters only.' end
+    if R.db then R.db.lastPerformanceReport=table.concat(lines,'\n') end
+    if DEFAULT_CHAT_FRAME then for _,line in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(line) end end
 end
 function C:Request(target)
     if target.kind=='talent' then

@@ -248,6 +248,7 @@ function R:UpdateSpecDisplay()
 end
 function R:Render()
     local w=self.window; if not w or not w:IsShown() or self.rendering then return end
+    local started=debugprofilestop and debugprofilestop() or 0
     self.rendering=true
     self:UpdateSpecDisplay()
     local totals=self:Totals()
@@ -336,6 +337,7 @@ function R:Render()
         b:SetBackdropBorderColor(enabled and c[1]*0.75 or 0.24,enabled and c[2]*0.75 or 0.25,enabled and c[3]*0.75 or 0.28,1)
     end
     self.rendering=false
+    self:MeasureWork('render',started)
 end
 -- Read-only side drawers: the existing confirmed history remains authoritative.
 local historyRowHeight=142
@@ -421,6 +423,13 @@ function R:ShowHistorySpellTooltip(owner,record,which)
 end
 function R:RenderHistory()
     local w=self.window; if not w.historyDrawers then return end
+    local history=self.character.history or {}
+    -- Records are immutable and capped at 100. Status/bag/selection changes
+    -- must not reset hundreds of textures and text regions in the drawers.
+    if w.renderedHistory==history and w.renderedHistoryCount==#history and w.renderedHistoryFirst==history[1] and w.renderedHistoryLast==history[#history] then
+        for _,p in pairs(w.historyDrawers) do self:ScrollHistory(p,p.scroll:GetVerticalScroll() or 0) end
+        return
+    end
     for _,kind in ipairs({'ability','talent'}) do
         local p=w.historyDrawers[kind]
         styleScroll(p.scroll)
@@ -478,6 +487,7 @@ function R:RenderHistory()
         if #records==0 then p.empty:Show() else p.empty:Hide() end
         p.canvas:SetHeight(math.max(1,#records*historyRowHeight)); p.scroll:UpdateScrollChildRect(); self:ScrollHistory(p,offset)
     end
+    w.renderedHistory=history; w.renderedHistoryCount=#history; w.renderedHistoryFirst=history[1]; w.renderedHistoryLast=history[#history]
 end
 function R:RenderAnnouncements()
     local w=self.window; if not w or not w.announcementScroll then return end
@@ -566,12 +576,13 @@ function R:UpdateNotice()
     if age>=n.hold+n.fade then self:ShowNextNotice()
     else n:SetAlpha(age<=n.hold and 1 or math.max(0,1-(age-n.hold)/n.fade)) end
 end
-function R:Notify(record)
+function R:Notify(record,deferRender)
     local text=textureTag(record.oldID)..record.oldName..'  ->  '..textureTag(record.newID)..record.newName
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage('|cffe0bd75RE: Roller by Vash:|r '..text..' | '..record.spent..' scroll used') end
     self:QueueNotice(record)
     self.announcementRecord=record; self.announcementUntil=GetTime()+6
-    self:Render()
+    -- CheckPending performs one render after updating the final status.
+    if not deferRender then self:Render() end
 end
 function R:ToggleUI()
     self:CreateUI()

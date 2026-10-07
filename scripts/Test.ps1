@@ -65,6 +65,8 @@ try {
   foreach($name in @('Test-Skin.lua','Test-Polish.lua','Test-HideLocked.lua','Test-Notices.lua')){[void]$vm.DoString((Get-Content -LiteralPath (Join-Path 'tests' $name) -Raw))}
   [void]$vm.DoString((Get-Content -LiteralPath (Join-Path $addon 'Core.lua') -Raw))
   [void]$vm.DoString('RunCoreTests()')
+  [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Performance.lua' -Raw))
+  [void]$vm.DoString('RunPerformanceTests()')
   $results=@($vm.Globals.Get('results').Table.Values)
   $results|ForEach-Object {$_.String}
   [void]$vm.DoString('FinishTests()')

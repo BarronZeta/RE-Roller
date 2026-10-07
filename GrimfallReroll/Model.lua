@@ -1,8 +1,14 @@
-GrimfallReroll = {version='0.9.2-rc2', selected={}, rows={}, byKey={}, queue={}, running=false, status='Open /rr to load your build.'}
+GrimfallReroll = {version='0.9.2-rc3', selected={}, rows={}, byKey={}, queue={}, running=false, status='Open /rr to load your build.'}
 local R=GrimfallReroll
 R.scrolls={ability=640,talent=639}
 function R:Changed() if self.Render then self:Render() end end
-function R:SetStatus(text) self.status=text; self:Changed() end
+function R:SetStatus(text) if self.status==text then return end; self.status=text; self:Changed() end
+function R:MeasureWork(kind,started)
+    self.performance=self.performance or {}
+    local p=self.performance[kind] or {calls=0,totalMS=0,maxMS=0}; self.performance[kind]=p
+    local ms=debugprofilestop and math.max(0,debugprofilestop()-started) or 0
+    p.calls=p.calls+1; p.totalMS=p.totalMS+ms; p.maxMS=math.max(p.maxMS,ms)
+end
 function R:InitializeDB(db)
     self.db=db; db.schema=1; db.characters=db.characters or {}; db.fast=db.fast~=false
     local character=(UnitName('player') or '?')..' - '..(GetRealmName() or '?')
@@ -88,6 +94,17 @@ function R:Step(clicked)
     if not self.running or self.paused or GetTime()<(self.nextAt or 0) then return end
     if self.manual and not clicked then return end
     local safe,reason=self.Client:Safe(); if not safe then self:Stop(reason); return end
+    if #self.queue==0 then self:Stop('Finished: '..(self.done or 0)..' confirmed rerolls.'); return end
+    -- Native presentation can last several seconds. No build scan or queue
+    -- mutation is needed until it has finished; still validate afresh before sending.
+    if self.Client:AnimationBusy() then
+        if self.done>0 then
+            self.animationWaitAt=self.animationWaitAt or GetTime()
+            if GetTime()-self.animationWaitAt>12 then self:Stop('Native roll presentation did not finish. Queue stopped.'); return end
+            self.nextAt=GetTime()+0.3; self:SetStatus('Result confirmed; waiting for native presentation to finish...')
+        else self.paused=true; self:SetStatus('An existing roll animation is active. Wait for it, then Resume.') end
+        return
+    end
     local before,err=self.Client:Snapshot()
     if not before or not self.SameBuild(self.expected,before) then self:Stop(err or 'Build changed outside this queue. Refresh and select again.'); return end
     local target=#self.queue>0 and table.remove(self.queue,1)
@@ -97,15 +114,6 @@ function R:Step(clicked)
     local count=self.Client:Count(target.kind); local other=target.kind=='ability' and 'talent' or 'ability'
     local otherCount=self.Client:Count(other)
     if not count or count<1 or otherCount==nil then self:Stop('Scroll count unavailable or no scrolls remaining.'); return end
-    if self.Client:AnimationBusy() then
-        table.insert(self.queue,1,target)
-        if self.done>0 then
-            self.animationWaitAt=self.animationWaitAt or GetTime()
-            if GetTime()-self.animationWaitAt>12 then self:Stop('Native roll presentation did not finish. Queue stopped.'); return end
-            self.nextAt=GetTime()+0.3; self:SetStatus('Result confirmed; waiting for native presentation to finish...')
-        else self.paused=true; self:SetStatus('An existing roll animation is active. Wait for it, then Resume.') end
-        return
-    end
     self.animationWaitAt=nil
     self.pending={target=target,before=before,scrolls=count,other=other,otherCount=otherCount,at=GetTime()}
     self.selected[target.key]=nil
@@ -125,15 +133,24 @@ function R:Result(kind,id)
     if (kind~='presentation' and kind~=p.target.kind) or not id or id<=0 or (p.result and p.result~=id) then
         p.ambiguous=true; self:Stop('Unexpected reroll result. Queue stopped for review.'); return
     end
-    p.result=id; p.eventAt=GetTime()
+    p.result=id; p.eventAt=GetTime(); p.nextSnapshotAt=nil
 end
 function R:CheckPending()
     local p=self.pending; if not p then return end
-    if self.Client:Spec()~=p.before.spec then p.ambiguous=true; self:Stop('Spec changed while awaiting a result.'); end
+    if not p.ambiguous and self.Client:Spec()~=p.before.spec then p.ambiguous=true; self:Stop('Spec changed while awaiting a result.'); end
     if GetTime()-p.at>20 then
         self.pending=nil; self:Stop('Result not confirmed within 20 seconds. No retry sent. Check your build and scrolls before restarting.'); self:Refresh(); return
     end
     if p.ambiguous or not p.result then return end
+    -- Cheap readiness checks first. The result event can precede the native
+    -- flush/scroll update; scanning all talent trees repeatedly cannot hurry it.
+    local count=self.Client:Count(p.target.kind); local other=self.Client:Count(p.other)
+    if count==nil or other==nil then return end
+    local spent=p.scrolls-count
+    if spent==0 then return end
+    if spent~=1 or other~=p.otherCount then p.ambiguous=true; self:Stop('Unexpected scroll-count change; queue stopped for review.'); return end
+    if p.nextSnapshotAt and GetTime()<p.nextSnapshotAt then return end
+    p.nextSnapshotAt=GetTime()+1
     local after=self.Client:Snapshot(); if not after or after.spec~=p.before.spec then return end
     local row
     for _,r in ipairs(after.rows) do if r.kind==p.target.kind and (r.spellID==p.result or (r.ranks and r.ranks[p.result])) then
@@ -153,16 +170,11 @@ function R:CheckPending()
     for key in pairs(after.byKey) do
         if not p.before.byKey[key] and key~=row.key then p.ambiguous=true; self:Stop('More than one replacement appeared; queue stopped.'); return end
     end
-    local count=self.Client:Count(p.target.kind); local other=self.Client:Count(p.other)
-    if count==nil or other==nil then return end
-    local spent=p.scrolls-count
-    if spent==0 then return end
-    if spent~=1 or other~=p.otherCount then p.ambiguous=true; self:Stop('Unexpected scroll-count change; queue stopped for review.'); return end
     local record={at=time(),spec=after.spec,kind=row.kind,oldID=p.target.spellID,oldName=p.target.name,newID=row.spellID,newName=row.name,spent=spent}
     table.insert(self.character.history,1,record); while #self.character.history>100 do table.remove(self.character.history) end
     self.pending=nil; self.done=(self.done or 0)+1; self.expected=after; self.nextAt=GetTime()+0.6
     self.rows=after.rows; self.byKey=after.byKey; self.snapshot=after; self.ready=true
-    if self.Notify then self:Notify(record) end
+    if self.Notify then self:Notify(record,true) end
     self.status='Confirmed: '..record.oldName..' -> '..record.newName..(self.paused and ' (paused)' or '')
     self:Changed()
 end

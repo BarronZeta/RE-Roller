@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.9.2-rc3 - 2026-10-07
+
+Public pre-release focused on reducing work during rerolls and adding read-only
+performance diagnostics. In-game FPS improvement has not yet been measured.
+
+### Changed
+
+- Wait for the result event and matching scroll consumption before reading the
+  full build. Retry incomplete post-result builds at most once per second.
+- Avoid scanning all talent trees while waiting for native roll presentation.
+- Refresh inventory counts instead of the full build for ordinary bag updates.
+  Unrelated idle error messages no longer trigger scans; actual build-change
+  events are coalesced.
+- Reuse unchanged history rows, skip unchanged status redraws, and perform one
+  final redraw per confirmed result.
+- Add `/rr performance` and `/rr perf` for session snapshot/render call counts,
+  average and maximum work timings, and frame-gap counters while rolling.
+  Frame gaps include the whole client, not just RE: Roller.
+
+### Preserved
+
+- Fresh complete build, specialization, and lock checks before every request.
+- Result validation still requires one replacement and exactly one matching
+  scroll consumed; uncertain results stop the queue without an automatic retry.
+- Stone Titan artwork, built-in font, text-only result notices, saved locks,
+  history, and native animation callbacks.
+
+### Validation
+
+- Added seven performance/safety regression tests, bringing the mocked Lua 5.1
+  suite to 97 checks. Tests never connect to the game or consume scrolls.
+- All 37 installable files match the reviewed rc3 build installed for local
+  testing. Live frame-rate and client behavior still need in-game confirmation.
+
 ## 0.9.2-rc2 - 2026-10-06
 
 Public pre-release. Includes the notification restoration from the private rc1

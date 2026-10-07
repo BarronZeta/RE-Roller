@@ -87,6 +87,7 @@ Confirmed rerolls appear in a fading result notice above/in front of the planner
 | `/rr stop` | Stop sending further reroll requests |
 | `/rr icon` | Restore the launcher to its default position |
 | `/rr diagnose` | Check required Grimfall APIs and show the current diagnostic status |
+| `/rr performance` or `/rr perf` | Print session build-scan and redraw timings, plus frame gaps observed while rolling |
 | `/rr history` | Print up to 20 recent history entries in chat |
 
 `/reroller`, `/rerolls`, and `/grr` are aliases for `/rr`.
@@ -103,6 +104,7 @@ Quick Animation only shortens the presentation for this addon's pending reroll. 
 - **A locked entry disappeared:** turn off Hide Locked and clear the search box.
 - **The reroll button is unavailable:** check that you selected unlocked entries, have enough of that column's scrolls in your bags, are alive and out of combat, and have no pending result.
 - **The queue stops:** read the planner's status line, then use `/rr diagnose`. The addon stops on uncertain results, server errors, or changes to your build instead of blindly sending another request.
+- **Rolling stutters or freezes:** version 0.9.2-rc3 reduces repeated build scans and history redraws while waiting for results. After a rolling session, use `/rr performance` (or `/rr perf`) and include the report with your bug report. Frame gaps include the entire game and other addons; they do not identify the cause on their own. Offline tests verify the reduced work, but an in-game FPS improvement has not yet been measured.
 - **The font differs from the preview:** the live screenshot shows the earlier Emblem font. The current release deliberately uses WoW's built-in font instead.
 
 [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose) with your version, reproduction steps, and the exact error/status message. Screenshots help; crop private chat or account details. Do not upload your whole `WTF` folder or account files.

@@ -1,4 +1,19 @@
-RE: Roller by Vash 0.9.2-rc2 - Built-in font and text-only notices
+RE: Roller by Vash 0.9.2-rc3 - Reduced work during rerolls
+
+NEW IN 0.9.2-rc3
+- Waits for the result event and matching scroll consumption before reading
+  the full build. Incomplete post-result builds retry at most once per second.
+- Does not rescan all talent trees while native presentation is still active.
+- Ordinary bag updates refresh counts, not the full build. Unrelated idle
+  error messages no longer trigger scans; actual build events are coalesced.
+- Reuses unchanged history rows and avoids duplicate renders per result.
+- Adds /rr performance (or /rr perf): read-only work timings and frame-gap
+  counters. Frame gaps include the whole client, not only this addon.
+- Every request still gets a fresh complete build/spec/lock check. Every
+  result still requires one replacement and exactly one matching scroll.
+- Stone Titan artwork, default font, text-only notices, saved locks and
+  history are preserved. No native animation callbacks are removed or skipped.
+- Offline Lua 5.1 regressions pass; in-game FPS improvement is not yet measured.
 
 NEW IN 0.9.2-rc2
 - Uses WoW's included Friz Quadrata font throughout the planner. No Emblem,
@@ -87,8 +102,8 @@ browses; Newest returns to the newest record. From / To icons and names each
 show their own spell tooltip. Last three transformations wrap in a bounded,
 scrollable footer.
 History retains 100 confirmed rolls TOTAL per character, across kinds/specs.
-Existing data is reused, not reset. Reroll requests and confirmation logic are
-unchanged from the installed v0.6.0 (Core.lua and Client.lua are byte-identical).
+Existing data is reused, not reset. Queue work is scheduled more efficiently
+in rc3; fresh pre-request checks and complete result validation remain required.
 
 Folder: GrimfallReroll
 Saved variable: GrimfallRerollDB
