@@ -1,6 +1,8 @@
 * text=auto eol=lf
 # Preserve the tested runtime file bytes from the installed release.
 GrimfallReroll/** -text
+# Keep upstream font notices byte-for-byte, including their original spacing.
+GrimfallReroll/Fonts/*-OFL.txt whitespace=-blank-at-eol
 *.tga binary
 *.ttf binary
 *.png binary

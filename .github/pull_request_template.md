@@ -10,4 +10,3 @@ Describe the player-facing change and any related issue.
 - [ ] Any change to reroll behavior has regression tests.
 
 Native Grimfall testing performed (or explicitly not performed):
-

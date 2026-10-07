@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a problem with RE: Roller on Grimfall.
+description: "Report a problem with RE: Roller on Grimfall."
 title: "[Bug]: "
 body:
   - type: markdown
@@ -40,4 +40,4 @@ body:
     id: screenshots
     attributes:
       label: Screenshots and other relevant addons
-      description: Attach cropped screenshots, if useful. Mention whether this occurs with only RE: Roller enabled.
+      description: "Attach cropped screenshots, if useful. Mention whether this occurs with only RE: Roller enabled."
