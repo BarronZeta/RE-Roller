@@ -73,9 +73,9 @@ function R:ShowTooltip(owner,row)
     GameTooltip:Show()
 end
 function R:RowClick(row,mouse)
-    if not row or self.running or self.pending then return end
+    if not row or self.byKey[row.key]~=row or not self:CanEditEntry(row.key) then return end
     if mouse=='RightButton' then
-        if self:Locks(self.spec)[row.key] then StaticPopup_Show('GRR_UNLOCK',row.name,nil,{key=row.key,spec=self.spec})
+        if self:Locks(self.spec)[row.key] then StaticPopup_Show('GRR_UNLOCK',row.name,nil,{key=row.key,spec=self.spec,context=self.lockContext})
         else self:Lock(row.key) end
     else self:Toggle(row.key) end
 end
@@ -237,7 +237,7 @@ function R:CreateUI()
     w:SetScript('OnEvent',function() R:LayoutHistory(); R:Render() end)
     UISpecialFrames=UISpecialFrames or {}; table.insert(UISpecialFrames,'GrimfallRerollWindow')
     StaticPopupDialogs.GRR_UNLOCK={text='Unlock %s for rerolling?',button1=YES,button2=CANCEL,timeout=0,whileDead=1,hideOnEscape=1,
-        OnAccept=function(self,data) data=data or self.data; if data then R:Unlock(data.key,data.spec) end end}
+        OnAccept=function(self,data) data=data or self.data; if data and data.context then R:Unlock(data.key,data.spec,data.context) end end}
 end
 function R:UpdateSpecDisplay()
     local w=self.window;if not w or not w:IsShown() then return end

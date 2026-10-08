@@ -18,6 +18,7 @@ dofile('GrimfallReroll/Core.lua')
 RunCoreTests()
 dofile('tests/Test-Performance.lua')
 RunPerformanceTests()
+dofile('tests/Test-SpecLocks.lua')
 for _, result in ipairs(results) do print(result) end
 FinishTests()
 print('PASS: '..#results..' offline behavior/layout tests; mock APIs only.')

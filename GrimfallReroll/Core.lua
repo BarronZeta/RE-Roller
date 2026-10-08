@@ -16,7 +16,9 @@ frame:SetScript('OnEvent',function(self,event,...)
     if not R.db then return end
     if event=='CUSTOM_CLASSLESS_WILDCARD_SPELL_ROLLED' then R:Result('presentation',arg)
     elseif event=='CUSTOM_CLASSLESS_WILDCARD_TALENT_LEARN' then R:Result('talent',arg)
-    elseif event=='PLAYER_REGEN_DISABLED' or event=='PLAYER_LEAVING_WORLD' or event=='PLAYER_LOGOUT' or event=='ACTIVE_TALENT_GROUP_CHANGED' then
+    elseif event=='ACTIVE_TALENT_GROUP_CHANGED' then
+        R:InvalidateSpecView(); R:Stop('Queue stopped: active talent group changed.'); R.dirty=true
+    elseif event=='PLAYER_REGEN_DISABLED' or event=='PLAYER_LEAVING_WORLD' or event=='PLAYER_LOGOUT' then
         R:Stop('Queue stopped: '..event:lower():gsub('_',' ')..'.'); R.dirty=true
     elseif event=='UI_ERROR_MESSAGE' and (R.running or R.pending) then
         local message=select(2,...) or arg or 'Server error'; R:Stop('Stopped: '..tostring(message)..'. No retry sent.')
@@ -35,6 +37,7 @@ frame:SetScript('OnUpdate',function(self,dt)
     elapsed=elapsed+dt; if elapsed<0.3 then return end; elapsed=0
     if R.pending or R.running then R:Step(false)
     elseif R.window and R.window:IsShown() then
+        R:SpecViewIsCurrent() -- Cheap fallback if the custom client omits a spec-change event.
         if R.dirty and GetTime()>=(R.nextIdleRefresh or 0) then
             R.dirty=false; R.uiDirty=false; R.nextIdleRefresh=GetTime()+1; R:Refresh()
         elseif R.uiDirty then R.uiDirty=false; R:Changed() end

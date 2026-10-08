@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.9.2 - 2026-10-07
+
+Regular release of the tested rc5 feature set, published without pre-release
+status at the maintainer's request. Version labels and release documentation
+are the only differences from the locally installed rc5 candidate.
+
+### Included
+
+- Spec-switch lock/selection guards, stale-row rejection, expiring unlock
+  confirmations, and lightweight detection of missed spec-switch events.
+- Chat-only confirmed roll notifications, built-in fonts, reduced repeated
+  build scans/redraws, and `/rr performance` diagnostics from the rc2-rc4 builds.
+- Stone Titan artwork, scrollable history, per-spec locks and Hide Locked.
+  Existing saved protections, preferences and history are not reset or migrated.
+
+### Validation and limits
+
+- All 118 offline Lua 5.1 behavior/layout/safety tests pass; all 37 package
+  members match the reviewed source. No real client or scrolls are used.
+- Regular release status does not imply a live FPS benchmark or universal
+  compatibility. The latest spec-switch fix still needs in-game confirmation.
+- Intended only for Grimfall's custom WoW 3.3.5a client.
+
+## 0.9.2-rc5 - 2026-10-07
+
+Local release candidate fixing unsafe lock edits during spec-switch refreshes.
+
+### Fixed
+
+- Check the live active spec before locking, unlocking or selecting an entry.
+  Reject stale/unknown views and schedule a coalesced refresh without applying
+  the rejected action to either spec.
+- Bind unlock popups to the spec-view lifetime. Switching away and back,
+  losing spec identity, or receiving a native spec-change event expires them;
+  an ordinary successful same-spec refresh does not.
+- Reject obsolete row objects. Detect missed native spec-change events through
+  the idle tick's cheap identity read, without repeatedly scanning a stable build.
+
+### Preserved and verified
+
+- No saved lock migration, reset, or cleanup. Existing locks in both specs remain
+  independent and intact; unintended existing locks need explicit unlocking.
+- Chat-only results, history, preferences, artwork, scroll validation and native
+  result callbacks are unchanged.
+- All 118 offline Lua 5.1 tests pass, including 21 spec-lock regressions and
+  two-way Spell Power rerolls. Twelve regression cases failed on the unfixed
+  rc4 code before the fix was applied. No real client or scrolls are used.
+- The switch-timing defect is reproduced and fixed offline. This does not prove
+  how the user's pre-existing duplicate Spell Power locks were originally set.
+
 ## 0.9.2-rc4 - 2026-10-07
 
 Pre-release removing the floating roll announcements at the user's request.

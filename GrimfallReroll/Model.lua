@@ -1,4 +1,4 @@
-GrimfallReroll = {version='0.9.2-rc4', selected={}, rows={}, byKey={}, queue={}, running=false, status='Open /rr to load your build.'}
+GrimfallReroll = {version='0.9.2', selected={}, rows={}, byKey={}, queue={}, running=false, status='Open /rr to load your build.'}
 local R=GrimfallReroll
 R.scrolls={ability=640,talent=639}
 function R:Changed() if self.Render then self:Render() end end
@@ -14,33 +14,56 @@ function R:InitializeDB(db)
     local character=(UnitName('player') or '?')..' - '..(GetRealmName() or '?')
     db.characters[character]=db.characters[character] or {specs={},history={}}
     self.character=db.characters[character]
+    self.lockContext={} -- Session-only identity for unlock confirmations; never saved.
 end
 function R:Locks(spec)
     local key=tostring(spec); local specs=self.character.specs
     specs[key]=specs[key] or {locks={}}; return specs[key].locks
 end
+function R:InvalidateSpecView()
+    self.ready=false; self.selected={}; self.lockContext={}
+    if type(StaticPopup_Hide)=='function' then StaticPopup_Hide('GRR_UNLOCK') end
+end
+function R:SpecViewIsCurrent()
+    -- A display refresh is coalesced, but an edit must check the live spec now.
+    -- This reads only the spec index, not the ability/talent trees.
+    local active=self.Client:Spec()
+    if not self.ready or not active or active~=self.spec then
+        if self.ready then
+            self:InvalidateSpecView()
+            self:SetStatus('Active spec changed or is unavailable. Refresh before editing locks or selections.')
+        end
+        self.dirty=true; return false
+    end
+    return true
+end
+function R:CanEditEntry(key,spec,context)
+    if self.running or self.pending or not self:SpecViewIsCurrent() then return false end
+    if (spec and spec~=self.spec) or (context and context~=self.lockContext) then return false end
+    return self.byKey[key]~=nil
+end
 function R:Refresh()
     local snapshot,reason=self.Client:Snapshot()
-    if not snapshot then self.ready=false; self:SetStatus(reason); return nil end
+    if not snapshot then self:InvalidateSpecView(); self:SetStatus(reason); return nil end
     if self.spec~=snapshot.spec then
         local initial=self.spec==nil
-        self:Stop(initial and 'Ready. Select entries in either column to plan a reroll.' or 'Active spec changed; queue stopped.'); self.selected={}; self.spec=snapshot.spec
+        self:InvalidateSpecView(); self.spec=snapshot.spec
+        self:Stop(initial and 'Ready. Select entries in either column to plan a reroll.' or 'Active spec changed; queue stopped.')
     end
     self.rows=snapshot.rows; self.byKey=snapshot.byKey; self.ready=true
     for key in pairs(self.selected) do if not self.byKey[key] or self:Locks(self.spec)[key] then self.selected[key]=nil end end
     self.snapshot=snapshot; self:Changed(); return snapshot
 end
 function R:Toggle(key)
-    if self.running or self.pending or not self.ready then return end
-    if not self.byKey[key] or self:Locks(self.spec)[key] then return end
+    if not self:CanEditEntry(key) or self:Locks(self.spec)[key] then return end
     self.selected[key]=not self.selected[key] or nil; self:Changed()
 end
 function R:Lock(key)
-    if not self.byKey[key] or self.running or self.pending then return end
+    if not self:CanEditEntry(key) then return end
     self:Locks(self.spec)[key]=true; self.selected[key]=nil; self:Changed()
 end
-function R:Unlock(key,spec)
-    if self.spec~=spec or self.running or self.pending then return end
+function R:Unlock(key,spec,context)
+    if self.spec~=spec or not self:CanEditEntry(key,spec,context) then return end
     self:Locks(spec)[key]=nil; self:Changed()
 end
 function R:Totals()

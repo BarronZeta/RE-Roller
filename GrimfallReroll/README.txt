@@ -1,4 +1,29 @@
-RE: Roller by Vash 0.9.2-rc4 - Chat-only roll notifications
+RE: Roller by Vash 0.9.2 - Spec-switch lock safety and chat-only results
+
+RELEASE 0.9.2
+- Regular GitHub release of the tested rc5 feature set. Only the version label
+  and release documentation differ from that locally installed candidate.
+- Includes the spec-switch lock fix, chat-only roll results, built-in font,
+  reduced repeated scan/redraw work, and /rr performance diagnostics.
+- No reset or migration of saved locks, preferences or reroll history.
+- All 118 offline Lua 5.1 regressions pass. The spec-switch fix has not yet
+  received an in-game confirmation, and live FPS improvement is unmeasured.
+- For Grimfall's custom WoW 3.3.5a client only.
+
+NEW IN 0.9.2-rc5
+- Lock, unlock and selection clicks verify the live active spec before editing.
+  An old or unavailable spec view rejects the click and schedules a refresh.
+- Unlock popups expire on a spec switch, including switching away and back.
+  Ordinary refreshes within the same spec preserve a valid confirmation.
+- Rejects clicks on stale row objects. A lightweight spec-index check catches
+  missed native switch events without rescanning a stable ability/talent build.
+- Existing per-spec locks, settings, history and saved-data schema are untouched.
+  A talent already saved as locked on both specs remains locked on both specs.
+  To remove an unwanted lock, activate that spec, Refresh, uncheck Hide Locked
+  if needed, then right-click the entry and confirm Unlock.
+- Chat-only notifications, artwork, scroll checks and native callbacks remain.
+- All 118 mocked Lua 5.1 regressions pass, including 21 spec-lock cases. Live
+  Grimfall confirmation is still required; no real scrolls are used by tests.
 
 NEW IN 0.9.2-rc4
 - Removes the floating roll-announcement text above the interface entirely,
@@ -36,7 +61,7 @@ NEW IN 0.9.2-rc2
 - Result colors, wrapping, fading and one-at-a-time presentation are retained.
 - Reroll timing, history, locks, filters, artwork and window settings are unchanged.
 
-NEW IN 0.9.2
+NEW IN 0.9.2-rc1 (PRIVATE DEVELOPMENT BUILD)
 - Restored the fading result notice above/in front of the planner, with both
   spell icons and clear old -> new text (font updated in rc2 above).
 - Ability results use gold; talent results use violet. Long names wrap inside
