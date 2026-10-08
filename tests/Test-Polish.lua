@@ -40,7 +40,7 @@ test('built-in font is used even when another addon supplies Emblem',function()
  assert(chosen=='Fonts\\FRIZQT__.TTF' and #seen==1 and not fetched)
 end)
 
-test('bundled font fallback preserves notice outline if the built-in face cannot load',function()
+test('bundled font fallback preserves requested outline if the built-in face cannot load',function()
  local R=reset()
  for _,failsWithError in ipairs({false,true}) do
   local seen={};local object={SetFont=function(_,path,size,flags)

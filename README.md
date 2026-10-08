@@ -28,7 +28,7 @@ Unzip, then copy the **`GrimfallReroll`** folder into your game's **`Interface/A
 - Open scrollable **Ability History** and **Talent History** panels to review what rolled off and what replaced it. Hover either spell's icon or name for its tooltip.
 - See your current custom specialization's name and icon when Grimfall provides them.
 - Use **Quick Animation**, Pause/Resume, Stop, and a bounded Recent Transformations area.
-- See fading, **text-only reroll announcements** with spell icons, without a notification box.
+- Receive confirmed roll results in **chat**, with old/new spell names, icons and scroll cost. The rc4 build removes the floating announcement overlay.
 - Move and resize the planner; drag its small launcher anywhere on screen.
 
 | Reroll type | Required item | Item ID |
@@ -77,7 +77,7 @@ The **History** checkbox in each column opens its corresponding side panel. Scro
 
 History retains the most recent **100 confirmed rerolls total per character**, across abilities, talents, and specializations. The footer shows the latest three transformations.
 
-Confirmed rerolls appear in a fading result notice above/in front of the planner, with spell icons and old-to-new names in WoW's built-in font. The notice has no background or border; a thin outline and shadow keep the text readable. Rapid results appear one at a time without slowing down rerolls. Long names wrap, and closing the planner clears the temporary notices without deleting history.
+Confirmed rerolls send one **chat notification** with both spell icons, old-to-new names and the scroll cost. There is no floating announcement above the planner in rc4: its frame, animation queue and fade updates have been removed. The Recent Transformations area and both history panels remain available, and closing the planner does not delete confirmed results.
 
 ### Commands
 
@@ -104,7 +104,7 @@ Quick Animation only shortens the presentation for this addon's pending reroll. 
 - **A locked entry disappeared:** turn off Hide Locked and clear the search box.
 - **The reroll button is unavailable:** check that you selected unlocked entries, have enough of that column's scrolls in your bags, are alive and out of combat, and have no pending result.
 - **The queue stops:** read the planner's status line, then use `/rr diagnose`. The addon stops on uncertain results, server errors, or changes to your build instead of blindly sending another request.
-- **Rolling stutters or freezes:** version 0.9.2-rc3 reduces repeated build scans and history redraws while waiting for results. After a rolling session, use `/rr performance` (or `/rr perf`) and include the report with your bug report. Frame gaps include the entire game and other addons; they do not identify the cause on their own. Offline tests verify the reduced work, but an in-game FPS improvement has not yet been measured.
+- **Rolling stutters or freezes:** rc3 reduced repeated build scans and history redraws; rc4 additionally removes the floating notification and its animation work. After a rolling session, use `/rr performance` (or `/rr perf`) and include the report with your bug report. Frame gaps include the entire game and other addons; they do not identify the cause on their own. Offline tests verify the removed work, but an in-game FPS improvement has not yet been measured.
 - **The font differs from the preview:** the live screenshot shows the earlier Emblem font. The current release deliberately uses WoW's built-in font instead.
 
 [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose) with your version, reproduction steps, and the exact error/status message. Screenshots help; crop private chat or account details. Do not upload your whole `WTF` folder or account files.

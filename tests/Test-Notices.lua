@@ -1,106 +1,114 @@
--- Presentation tests only. No game connection and no real scrolls are used.
+-- Chat-only result notifications. No game connection or real scrolls.
 local function record(i,kind)
  return {oldID=101,newID=102,oldName='Old '..i,newName='New '..i,spent=1,kind=kind or 'ability'}
 end
-local function expire(R)
- local n=R.notice; clock=n.started+n.hold+n.fade+0.01; n.scripts.OnUpdate()
-end
-test('notice uses built-in typography, centered icons and click-through foreground layering',function()
- local R=reset(); local r=record(1); RealNotifyForTests(R,r); local n=R.notice
- assert(n.parent==R.window and n.strata=='FULLSCREEN_DIALOG' and n.clamped and n.mouseEnabled==false)
- assert(n.text.fontObject.fontSize==22 and n.text.fontObject.fontPath==R.window.title.fontObject.fontPath)
- assert(n.text.fontObject.fontPath=='Fonts\\FRIZQT__.TTF' and n.text.justifyH=='CENTER')
- local _,icons=n.text:GetText():gsub('|T',''); assert(icons==2 and n.text:GetText():find('Old 1',1,true) and n.text:GetText():find('New 1',1,true))
- assert(n.point[1]=='BOTTOM' and n.point[2]==R.window and n.point[3]=='TOP' and n.point[5]>R.Skin.top and #calls==0)
-end)
-test('floating notice contains only result text with inline icons, outline and shadow, with no box or border',function()
- local R=reset();RealNotifyForTests(R,record(1));local n=R.notice
- assert(not rawget(n,'backdrop') and not rawget(n,'backdropColor') and not rawget(n,'borderColor'))
- assert(not n.title and not n.rule and n.text.fontObject.fontFlags=='OUTLINE')
- assert(n.text.shadowColor[4]==1 and n.text.shadowOffset[1]==1 and n.text.shadowOffset[2]==-1)
- local children=0
- for _,f in ipairs(PreviewFrames) do if f.parent==n then children=children+1;assert(f==n.text and f.kind=='FontString') end end
- assert(children==1 and #calls==0)
-end)
-test('rapid results are presented in confirmation order without replacing the active notice',function()
- local R=reset(); local records={}
- for i=1,10 do records[i]=record(i,i%2==0 and 'talent' or 'ability'); RealNotifyForTests(R,records[i]) end
- local n=R.notice
- assert(n.record==records[1] and #R.noticeQueue==9)
- for i=1,10 do
-  assert(n.record==records[i] and n:IsShown() and n:GetAlpha()==1)
-  assert(n.text:GetText():find(i%2==0 and '|cffbc9cf2' or '|cffffd27c',1,true))
-  expire(R); assert(R.notice==n)
- end
- assert(not n:IsShown() and not n.record and #R.noticeQueue==0 and #calls==0)
-end)
-test('notice holds for reading, fades, and resets opacity for the next result',function()
- local R=reset(); RealNotifyForTests(R,record(1)); RealNotifyForTests(R,record(2)); local n=R.notice
- clock=n.started+n.hold-0.01; n.scripts.OnUpdate(); assert(n:GetAlpha()==1)
- clock=n.started+n.hold+n.fade/2; n.scripts.OnUpdate(); assert(math.abs(n:GetAlpha()-0.5)<0.001)
- expire(R); assert(n.record.oldName=='Old 2' and n:GetAlpha()==1)
-end)
-test('long notice names wrap inside measured bounds and reflow when the planner is resized',function()
- local R=reset(); local w=R.window; w:SetSize(840,620); w.scripts.OnSizeChanged()
- local r=record(1); r.oldName=string.rep('Long ability name ',12); r.newName=string.rep('Long replacement name ',12)
- RealNotifyForTests(R,r); local n=R.notice; local narrowHeight=n:GetHeight(); local started=n.started
- assert(n.text.wordWrap and n.text:GetStringHeight()<=n.text:GetHeight() and n:GetHeight()==n.text:GetHeight()+16)
- assert(n.text:GetWidth()==n:GetWidth()-32 and n:GetWidth()<=w:GetWidth()-32)
- assert(n:GetWidth()*w:GetScale()<=UIParent:GetWidth()-32)
- w:SetSize(1300,950); w.scripts.OnSizeChanged()
- assert(n:GetHeight()<=narrowHeight and n.record==r and n.started==started and #R.noticeQueue==0)
- assert(n.text:GetText():find(r.oldName,1,true) and n.text:GetText():find(r.newName,1,true))
-end)
-test('screen changes remeasure the notice without replaying it',function()
- local R=reset(); local oldWidth,oldHeight=UIParent:GetWidth(),UIParent:GetHeight()
- RealNotifyForTests(R,record(1)); local n=R.notice; local started=n.started
- UIParent:SetSize(800,600); R.window.scripts.OnEvent()
- assert(n.clamped and n:GetWidth()*R.window:GetScale()<=UIParent:GetWidth()-32)
- assert(n.started==started and #R.noticeQueue==0)
- UIParent:SetSize(oldWidth,oldHeight); R.window.scripts.OnEvent()
-end)
-test('refresh and history toggles neither duplicate nor restart an active notice',function()
- local R=reset(); RealNotifyForTests(R,record(1)); local n=R.notice; local started=n.started
- clock=1; R:Render(); R:Refresh(); R:ToggleHistory('ability'); R:ToggleHistory('talent'); R:AnchorNotice()
- assert(R.notice==n and n.record.oldName=='Old 1' and n.started==started and #R.noticeQueue==0 and #calls==0)
- expire(R); R:Render(); R:Refresh(); assert(not n:IsShown())
-end)
-test('closing the planner clears pending notices and reopening does not replay them',function()
- local R=reset(); RealNotifyForTests(R,record(1)); RealNotifyForTests(R,record(2)); local n=R.notice
- R.window:Hide(); assert(not n:IsShown() and not n.record and #R.noticeQueue==0)
- R.window:Show(); R:Render(); assert(not n:IsShown() and #R.noticeQueue==0 and #calls==0)
-end)
-test('late hidden results remain in chat/history without showing a notice',function()
- local R=reset(); R.window:Hide(); local r=record(1); R.character.history={r}
- local oldChat=DEFAULT_CHAT_FRAME; local messages={}
+local function captureChat(fn)
+ local original=DEFAULT_CHAT_FRAME; local messages={}
  DEFAULT_CHAT_FRAME={AddMessage=function(_,text) messages[#messages+1]=text end}
- RealNotifyForTests(R,r); DEFAULT_CHAT_FRAME=oldChat
- assert(#messages==1 and messages[1]:find('New 1',1,true) and #R.character.history==1)
- assert(not R.window:IsShown() and not R.notice:IsShown() and #R.noticeQueue==0 and #calls==0)
+ local ok,err=pcall(fn,messages); DEFAULT_CHAT_FRAME=original
+ assert(ok,err); return messages
+end
+local function noOverlay(R)
+ assert(not R.notice and not R.noticeQueue and not R.announcementUntil and not R.announcementRecord)
+ assert(not R.CreateNotice and not R.UpdateNotice and not R.QueueNotice and not R.ShowNextNotice and not R.AnchorNotice)
+end
+
+test('confirmed result keeps one chat message with both names, icons and scroll cost',function()
+ local R=reset(); local r=record(1)
+ local messages=captureChat(function() RealNotifyForTests(R,r) end)
+ assert(#messages==1 and messages[1]:find('RE: Roller by Vash:',1,true))
+ assert(messages[1]:find('Old 1',1,true) and messages[1]:find('New 1',1,true) and messages[1]:find('1 scroll used',1,true))
+ local _,icons=messages[1]:gsub('|T',''); assert(icons==2 and #calls==0); noOverlay(R)
 end)
-test('notices work with Quick Animation off and reuse the same frame across batches',function()
- local R=reset(); R.db.fast=false; RealNotifyForTests(R,record(1)); local n=R.notice; expire(R)
- local count=#PreviewFrames; RealNotifyForTests(R,record(2,'talent'))
- assert(R.notice==n and #PreviewFrames==count and n:IsShown())
- assert(n.text:GetText():find('|cffbc9cf2',1,true) and R.db.fast==false and #calls==0)
+test('ability and talent results both use chat without any floating frame',function()
+ local R=reset()
+ local messages=captureChat(function()
+  RealNotifyForTests(R,record(1,'ability')); RealNotifyForTests(R,record(2,'talent'))
+ end)
+ assert(#messages==2 and messages[1]:find('New 1',1,true) and messages[2]:find('New 2',1,true))
+ for _,frame in ipairs(PreviewFrames) do assert(frame.strata~='FULLSCREEN_DIALOG') end
+ noOverlay(R)
 end)
-test('notice timers cannot spend scrolls, change reroll state, locks, selection or saved history',function()
- local R=reset(); R:Lock('A:101'); R:Toggle('A:102'); RealNotifyForTests(R,record(1))
- local pending={key='A:102'}; local queue={{key='T:201'}}; local history=R.character.history
- R.pending=pending; R.queue=queue; R.running=true; local selected=R.selected
- expire(R)
+test('rapid confirmations deliver chat immediately in order without an animation queue',function()
+ local R=reset(); local frames=#PreviewFrames
+ local messages=captureChat(function()
+  for i=1,100 do RealNotifyForTests(R,record(i,i%2==0 and 'talent' or 'ability'),true) end
+ end)
+ assert(#messages==100 and #PreviewFrames==frames and #calls==0)
+ for i=1,100 do assert(messages[i]:find('Old '..i..'  ->  ',1,true)) end
+ noOverlay(R)
+end)
+test('deferred notification does no render or full build scan',function()
+ local R=reset(); local render,snapshot=R.Render,R.Client.Snapshot; local draws,scans=0,0
+ R.Render=function() draws=draws+1 end; R.Client.Snapshot=function() scans=scans+1 end
+ local ok,err=pcall(RealNotifyForTests,R,record(1),true)
+ R.Render,R.Client.Snapshot=render,snapshot
+ assert(ok,err); assert(draws==0 and scans==0); noOverlay(R)
+end)
+test('nondeferred notification performs only the normal static-history render',function()
+ local R=reset(); local r=record(1); R.character.history={r}
+ local render=R.Render; local draws=0
+ R.Render=function(...) draws=draws+1; return render(...) end
+ local ok,err=pcall(RealNotifyForTests,R,r); R.Render=render
+ assert(ok,err); assert(draws==1 and R.window.historyRows[1].record==r)
+ assert(not R.window.historyRows[1].stripe:IsShown()); noOverlay(R)
+end)
+test('notification has no fade ticks or six-second expiration redraw',function()
+ local R=reset(); RealNotifyForTests(R,record(1),true)
+ local render=R.Render; local draws=0; local frames=#PreviewFrames
+ R.Render=function(...) draws=draws+1; return render(...) end
+ for i=1,20 do clock=i; R.window.scripts.OnUpdate() end
+ R.Render=render
+ assert(draws==0 and #PreviewFrames==frames and #calls==0); noOverlay(R)
+end)
+test('long result names remain complete in chat without measuring an overlay',function()
+ local R=reset(); local r=record(1); r.oldName=string.rep('Long old name ',40);r.newName=string.rep('Long new name ',40)
+ local frames=#PreviewFrames
+ local messages=captureChat(function() RealNotifyForTests(R,r,true) end)
+ assert(#messages==1 and messages[1]:find(r.oldName,1,true) and messages[1]:find(r.newName,1,true))
+ assert(#PreviewFrames==frames); noOverlay(R)
+end)
+test('refresh, resizing and history toggles do not replay chat notifications',function()
+ local R=reset()
+ local messages=captureChat(function()
+  RealNotifyForTests(R,record(1)); R:Refresh();R:ToggleHistory('ability');R:ToggleHistory('talent')
+  R.window:SetSize(980,760);R.window.scripts.OnSizeChanged();R.window.scripts.OnEvent();R:Render()
+ end)
+ assert(#messages==1 and #calls==0); noOverlay(R)
+end)
+test('closing and reopening preserves static history without replaying chat',function()
+ local R=reset();local r=record(1);R.character.history={r}
+ local messages=captureChat(function()
+  RealNotifyForTests(R,r);R.window:Hide();R.window:Show();R:Render()
+ end)
+ assert(#messages==1 and #R.character.history==1 and R.window.historyRows[1].record==r and #calls==0);noOverlay(R)
+end)
+test('late hidden results still reach chat and history without reopening the planner',function()
+ local R=reset();R.window:Hide();local r=record(1);R.character.history={r}
+ local messages=captureChat(function() RealNotifyForTests(R,r) end)
+ assert(#messages==1 and #R.character.history==1 and not R.window:IsShown() and #calls==0);noOverlay(R)
+end)
+test('chat delivery leaves locks, selection, pending requests and scrolls unchanged',function()
+ local R=reset();R.db.fast=false;R:Lock('A:101');R:Toggle('A:102')
+ local pending={key='A:102'};local queue={{key='T:201'}};local history=R.character.history;local selected=R.selected
+ R.pending=pending;R.queue=queue;R.running=true
+ RealNotifyForTests(R,record(1),true)
  assert(R.pending==pending and R.queue==queue and R.running and R.selected==selected and selected['A:102'])
  assert(R:Locks(R.spec)['A:101'] and R.character.history==history and #history==0 and #calls==0)
- assert(scrollCounts[640]==10 and scrollCounts[639]==10)
+ assert(scrollCounts[640]==10 and scrollCounts[639]==10 and not R.db.fast);noOverlay(R)
 end)
-test('actual confirmations enqueue notices but starting a reroll does not announce an unconfirmed result',function()
- local R=reset(); R.Notify=RealNotifyForTests; R:Toggle('A:101'); R:Toggle('A:102'); R:Start('ability')
- assert(#calls==1 and R.pending and not R.notice:IsShown())
- replaceAbility(101,103); scrollCounts[640]=9; R:Result('ability',103); R:Step(false)
- assert(R.notice:IsShown() and R.notice.record==R.character.history[1] and #R.character.history==1)
- assert(R.notice.record.oldID==101 and R.notice.record.newID==103 and #calls==1)
- clock=1; R:Step(false); assert(#calls==2 and R.pending and R.notice.record.oldID==101)
- replaceAbility(102,104); scrollCounts[640]=8; R:Result('ability',104); R:Step(false)
- assert(#R.character.history==2 and R.notice.record.oldID==101 and #R.noticeQueue==1)
- expire(R); assert(R.notice.record.oldID==102 and R.notice.record.newID==104 and #calls==2)
+test('actual confirmations notify exactly once; starting or duplicate events cannot announce unconfirmed rolls',function()
+ local R=reset();R.Notify=RealNotifyForTests
+ local messages=captureChat(function(messages)
+  R:Toggle('A:101');R:Toggle('A:102');R:Start('ability')
+  assert(#calls==1 and R.pending and #messages==0)
+  R:Result('ability',103);R:Step(false);assert(#messages==0)
+  replaceAbility(101,103);scrollCounts[640]=9;R:Step(false)
+  assert(#messages==1 and #R.character.history==1 and #calls==1)
+  R:Result('ability',103);R:Step(false);assert(#messages==1)
+  clock=1;R:Step(false);assert(#calls==2 and R.pending)
+  replaceAbility(102,104);scrollCounts[640]=8;R:Result('ability',104);R:Step(false)
+  assert(#R.character.history==2 and #messages==2 and #calls==2)
+ end)
+ assert(messages[1]:find('Spell 101',1,true) and messages[2]:find('Spell 102',1,true));noOverlay(R)
 end)

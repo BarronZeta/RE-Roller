@@ -1,4 +1,16 @@
-RE: Roller by Vash 0.9.2-rc3 - Reduced work during rerolls
+RE: Roller by Vash 0.9.2-rc4 - Chat-only roll notifications
+
+NEW IN 0.9.2-rc4
+- Removes the floating roll-announcement text above the interface entirely,
+  including its frame, notice queue, text measurement, and per-frame fade work.
+- Confirmed rolls still send one chat message with old/new names, icons and
+  the scroll cost. Unconfirmed or duplicate result events do not add messages.
+- Removes the temporary recent-result highlight and its delayed full redraw.
+  Recent Transformations and both scrollable history panels remain available.
+- Preserves Stone Titan graphics, fonts, per-spec locks, Hide Locked settings,
+  saved history, reroll confirmation checks and native animation callbacks.
+- All 97 mocked Lua 5.1 regressions pass. This removes known UI work, but does
+  not prove the overlay caused all stutter; live FPS still needs a game test.
 
 NEW IN 0.9.2-rc3
 - Waits for the result event and matching scroll consumption before reading

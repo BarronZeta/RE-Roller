@@ -27,7 +27,6 @@ end
 font('Title',30,0.96,0.83,0.57); font('Heading',20,0.96,0.83,0.57)
 font('HistoryHeading',17,0.96,0.92,0.81)
 font('Body',14,0.91,0.90,0.87); font('Small',12,0.78,0.78,0.76)
-font('Notice',22,0.96,0.95,0.91,'OUTLINE')
 font('Muted',12,0.73,0.76,0.79); font('Button',14,0.96,0.85,0.63)
 font('ButtonHighlight',14,1,1,1); font('ButtonDisabled',14,0.48,0.48,0.48)
 local function label(parent,style)
@@ -109,7 +108,7 @@ function R:CreateUI()
         R:LayoutHistory()
     end
     w:SetScript('OnDragStop',save)
-    w:SetScript('OnHide',function() R:Stop('Window closed; remaining rerolls stopped.'); R:ClearNotice(); GameTooltip:Hide() end)
+    w:SetScript('OnHide',function() R:Stop('Window closed; remaining rerolls stopped.'); GameTooltip:Hide() end)
     w.headerSurface=CreateFrame('Frame',nil,w); w.headerSurface:SetPoint('TOPLEFT',3,-3); w.headerSurface:SetPoint('TOPRIGHT',-3,-3); w.headerSurface:SetHeight(50); w.headerSurface:SetBackdrop(panelBackdrop); w.headerSurface:SetBackdropColor(0.028,0.039,0.047,1)
     w.header=fill(w,{0.025,0.035,0.045},1); w.header:SetPoint('TOPLEFT',13,-13); w.header:SetPoint('TOPRIGHT',-13,-13); w.header:SetHeight(50)
     w.emblemFrame=CreateFrame('Frame',nil,w.headerSurface); w.emblemFrame:SetSize(40,42); w.emblemFrame:SetPoint('TOPLEFT',15,-4); w.emblemFrame:SetBackdrop(inset); w.emblemFrame:SetBackdropColor(0.06,0.05,0.035,1); w.emblemFrame:SetBackdropBorderColor(0,0,0,0)
@@ -227,17 +226,15 @@ function R:CreateUI()
         t:SetPoint('TOPRIGHT',-10,-56); t:SetPoint('BOTTOMRIGHT',-10,126); t:SetWidth(half)
         for _,p in pairs(w.panels) do p.canvas:SetWidth(half-44) end
         R:LayoutHistory()
-        R:AnchorNotice()
         R:Render()
     end
     w:SetScript('OnSizeChanged',layout); layout()
     w:SetScript('OnUpdate',function()
         if not w.nextSpecUpdate or GetTime()>=w.nextSpecUpdate then R:UpdateSpecDisplay();w.nextSpecUpdate=GetTime()+1 end
-        if R.announcementUntil and GetTime()>=R.announcementUntil then R.announcementUntil=nil; R:Render() end
     end)
     w:HookScript('OnShow',function() R:LayoutHistory(); R:Render() end)
     w:RegisterEvent('DISPLAY_SIZE_CHANGED'); w:RegisterEvent('UI_SCALE_CHANGED')
-    w:SetScript('OnEvent',function() R:LayoutHistory(); R:AnchorNotice(); R:Render() end)
+    w:SetScript('OnEvent',function() R:LayoutHistory(); R:Render() end)
     UISpecialFrames=UISpecialFrames or {}; table.insert(UISpecialFrames,'GrimfallRerollWindow')
     StaticPopupDialogs.GRR_UNLOCK={text='Unlock %s for rerolling?',button1=YES,button2=CANCEL,timeout=0,whileDead=1,hideOnEscape=1,
         OnAccept=function(self,data) data=data or self.data; if data then R:Unlock(data.key,data.spec) end end}
@@ -506,10 +503,7 @@ function R:RenderAnnouncements()
             local textHeight=math.max(18,row.text:GetStringHeight() or 18)
             row.text:SetHeight(textHeight); row:SetSize(cardWidth,textHeight+10)
             row:ClearAllPoints(); row:SetPoint('TOPLEFT',(i-1)*(cardWidth+9),0); row:Show()
-            local fresh=h and h==self.announcementRecord and self.announcementUntil and GetTime()<self.announcementUntil
-            if fresh then
-                local c=colors[h.kind] or colors.gold; row.shade:SetVertexColor(c[1],c[2],c[3],0.15); row.stripe:SetVertexColor(c[1],c[2],c[3],0.85); row.stripe:Show()
-            else row.shade:SetVertexColor(1,1,1,i%2==1 and 0.025 or 0); row.stripe:Hide() end
+            row.shade:SetVertexColor(1,1,1,i%2==1 and 0.025 or 0); row.stripe:Hide()
             height=math.max(height,textHeight+10)
         else row:Hide(); row.stripe:Hide() end
     end
@@ -519,75 +513,17 @@ function R:RenderAnnouncements()
     local maximum=math.max(0,height-w.announcementScroll:GetHeight())
     w.announcementScroll:SetVerticalScroll(math.max(0,math.min(maximum,offset)))
 end
--- Presentation only: this FIFO never sends, delays or confirms reroll requests.
--- Reuse one click-through frame so bursts cannot stack text outside a fixed box.
-function R:CreateNotice()
-    if self.notice then return self.notice end
-    local n=CreateFrame('Frame',nil,self.window); self.notice=n
-    n:Hide(); n:EnableMouse(false); n:SetFrameStrata('FULLSCREEN_DIALOG'); n:SetClampedToScreen(true)
-    -- No backdrop, border, heading or decorative textures: just the result.
-    n.text=centered(label(n,'Notice')); n.text:SetPoint('TOP',0,-8); n.text:SetWordWrap(true)
-    if n.text.SetNonSpaceWrap then n.text:SetNonSpaceWrap(true) end
-    n.text:SetSpacing(4); n.text:SetShadowColor(0,0,0,1); n.text:SetShadowOffset(1,-1)
-    n:SetScript('OnUpdate',function() R:UpdateNotice() end)
-    return n
-end
-function R:ClearNotice()
-    self.noticeQueue={}
-    if self.notice then
-        self.notice.record=nil; self.notice.started=nil; self.notice:Hide(); self.notice:SetAlpha(1)
-    end
-end
-function R:AnchorNotice()
-    local n,w=self.notice,self.window
-    if not n or not n.record or not w then return end
-    local scale=math.max(0.1,w:GetScale() or 1)
-    local width=math.max(160,math.min(840,w:GetWidth()-32,(UIParent:GetWidth()-32)/scale))
-    n:SetWidth(width); n.text:SetWidth(width-32); n.text:SetHeight(0)
-    local height=math.max(30,n.text:GetStringHeight() or 30)
-    n.text:SetHeight(height); n:SetHeight(height+16)
-    n:ClearAllPoints()
-    -- Clear the guardian when space permits. Native clamping keeps the entire
-    -- notice on screen when the planner is near the top; its higher strata
-    -- keeps it readable in front of the art instead of hiding underneath it.
-    n:SetPoint('BOTTOM',w,'TOP',0,(self.Skin.top or 0)+10)
-end
-function R:ShowNextNotice()
-    if not self.window or not self.window:IsShown() then self:ClearNotice(); return end
-    if not self.noticeQueue or #self.noticeQueue==0 then self:ClearNotice(); return end
-    local record=table.remove(self.noticeQueue,1)
-    local n=self:CreateNotice(); n.record=record
-    local newColor=record.kind=='talent' and '|cffbc9cf2' or '|cffffd27c'
-    n.text:SetText(textureTag(record.oldID,24)..'|cffd6d7db'..record.oldName..'|r  ->  '..textureTag(record.newID,24)..newColor..record.newName..'|r')
-    self:AnchorNotice()
-    n.hold=math.min(7,3.2+0.9*math.max(0,math.ceil(n.text:GetHeight()/30)-1)); n.fade=0.65
-    n.started=GetTime(); n:SetAlpha(1); n:Show()
-end
-function R:QueueNotice(record)
-    if not self.window or not self.window:IsShown() then self:ClearNotice(); return end
-    self.noticeQueue=self.noticeQueue or {}; table.insert(self.noticeQueue,record)
-    if not self.notice or not self.notice.record then self:ShowNextNotice() end
-end
-function R:UpdateNotice()
-    local n=self.notice
-    if not n or not n.record then return end
-    if not self.window or not self.window:IsShown() then self:ClearNotice(); return end
-    local age=math.max(0,GetTime()-n.started)
-    if age>=n.hold+n.fade then self:ShowNextNotice()
-    else n:SetAlpha(age<=n.hold and 1 or math.max(0,1-(age-n.hold)/n.fade)) end
-end
+-- Chat is the only transient result notification. The static recent/history
+-- panels are updated by the normal confirmation render, without overlay work.
 function R:Notify(record,deferRender)
     local text=textureTag(record.oldID)..record.oldName..'  ->  '..textureTag(record.newID)..record.newName
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage('|cffe0bd75RE: Roller by Vash:|r '..text..' | '..record.spent..' scroll used') end
-    self:QueueNotice(record)
-    self.announcementRecord=record; self.announcementUntil=GetTime()+6
     -- CheckPending performs one render after updating the final status.
     if not deferRender then self:Render() end
 end
 function R:ToggleUI()
     self:CreateUI()
     if self.window:IsShown() then self.window:Hide() else self.window:Show(); self:Refresh(); self:Render() end
-    self:AnchorNotice()
 end
 function R:CreateLauncher(resetPosition)
     if not self.launcher then

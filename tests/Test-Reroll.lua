@@ -125,7 +125,6 @@ function Fire(event,...)
 end
 function reset()
  local R=GrimfallReroll
- if R.ClearNotice then R:ClearNotice() end
  clock=0; calls={}; known={101,102}; talents={[201]={class=1,spell=301}}; spec=1; combat=false; dead=false; requestAllowed=true; talentAllowed=true
  scrollCounts={[640]=10,[639]=10}; RandomMode_RollFrame=nil
  R.pending=nil; R.running=false; R.queue={}; R.selected={}; R.spec=nil; R.ready=false; R.expected=nil; R.status='Ready'; R.done=0; R.total=0; R.manual=nil
@@ -314,14 +313,14 @@ function RunUITests()
   assert(R.window.panels.ability.start.enabled and not R.window.panels.talent.start.enabled)
   R.window.panels.ability.start.scripts.OnClick(); assert(#calls==1 and calls[1][1]=='ability' and R.selected['T:201'])
  end)
- test('confirmed result shows a foreground notice and also highlights the in-planner announcement',function()
+ test('confirmed result updates static in-planner history without an overlay or expiration redraw',function()
   local R=reset(); R.window:Show()
   local record={oldID=101,newID=102,oldName='Old',newName='New',spent=1,kind='ability'}
   R.character.history={record}; realNotify(R,record)
-  assert(R.notice:IsShown() and R.notice.record==record and R.notice.strata=='FULLSCREEN_DIALOG')
-  assert(R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1].record==record)
-  clock=7; R.window.scripts.OnUpdate(); R.notice.scripts.OnUpdate()
-  assert(not R.notice:IsShown() and not R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1]:IsShown() and #calls==0)
+  assert(not R.notice and not R.noticeQueue and not R.announcementUntil)
+  assert(not R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1].record==record)
+  clock=7; R.window.scripts.OnUpdate()
+  assert(not R.notice and not R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1]:IsShown() and #calls==0)
  end)
  test('rapid multiple results remain bounded to three measured rows and all stay in full history',function()
   local R=reset(); local w=R.window
@@ -330,7 +329,7 @@ function RunUITests()
    local record={oldName=string.rep('Long ability name ',12)..i,newName=string.rep('Long replacement name ',12)..i,oldID=101,newID=102,kind=i%2==0 and 'talent' or 'ability',spent=1}
    table.insert(R.character.history,1,record); realNotify(R,record)
   end
-  assert(#R.character.history==10 and #w.historyRows==3 and R.notice:IsShown() and #R.noticeQueue==9)
+  assert(#R.character.history==10 and #w.historyRows==3 and not R.notice and not R.noticeQueue)
   assert(w.historyRows[1].record==R.character.history[1] and w.historyRows[3].record==R.character.history[3])
   local used=0
   for _,row in ipairs(w.historyRows) do
@@ -366,10 +365,10 @@ function RunUITests()
  test('late results with planner closed go to chat and history without reopening any overlay',function()
   local R=reset(); local w=R.window
   local record={oldID=101,newID=102,oldName='Old',newName='New',spent=1,kind='ability'}
-  realNotify(R,record); local notice=R.notice; w:Hide()
+  realNotify(R,record); w:Hide()
   R.character.history={record}; realNotify(R,record)
-  assert(not notice:IsShown() and not notice.record and #R.noticeQueue==0 and not w:IsShown() and #calls==0)
-  w:Show(); R:Render(); assert(w.historyRows[1].record==record and not notice:IsShown())
+  assert(not R.notice and not R.noticeQueue and not w:IsShown() and #calls==0)
+  w:Show(); R:Render(); assert(w.historyRows[1].record==record and not R.notice)
  end)
  test('launcher is 32px, opens on click, saves free-drag position, and does not click after dragging',function()
   local R=reset(); R.launcher=nil; R:CreateLauncher(); local b=R.launcher

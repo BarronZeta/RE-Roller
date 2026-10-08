@@ -44,7 +44,8 @@ Lua 5.1 installation and runs the same validation/packaging entry point.
 - Every TOC reference exists; texture dimensions and formats are valid.
 - Font headers and required third-party license notices are present.
 - The mocked behavior/layout tests cover queues, scroll checks, confirmations,
-  per-spec locks, history, tooltips, frame layout, Hide Locked, and result notices.
+  per-spec locks, history, tooltips, frame layout, Hide Locked, and chat-only
+  results without overlay allocations or expiration redraws.
 - Performance regressions cover bounded build scans, native-animation waits,
   event bursts, unchanged history reuse, and read-only performance reports.
   These work-count checks are not live frame-rate benchmarks.
@@ -56,7 +57,7 @@ specific diff before adding its new fixture, version, tests, and release notes.
 Do not blindly rewrite expected hashes to make a failing test pass. Update
 public download links only when the new release is actually published.
 
-Use `-OutputDirectory dist/0.9.2-rc3` when building beside an existing release
+Use `-OutputDirectory dist/0.9.2-rc4` when building beside an existing release
 so its manifest and checksums are preserved along with its ZIP.
 
 The repository license and `GrimfallReroll/LICENSE.txt` must stay identical.

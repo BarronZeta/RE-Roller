@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.9.2-rc4 - 2026-10-07
+
+Pre-release removing the floating roll announcements at the user's request.
+
+### Changed
+
+- Remove the floating announcement frame, its notice queue, dynamic text
+  measurement/anchoring and per-frame fade handler, rather than hiding them.
+- Keep chat notifications with old/new spell names, icons and scroll cost.
+- Remove the temporary Recent Transformations highlight and the associated
+  six-second full-interface redraw; the static recent/history panels remain.
+
+### Preserved
+
+- Stone Titan artwork, built-in fonts, locks, Hide Locked preferences and history.
+- Reroll validation, scroll budgets, request timing, Quick Animation and native
+  result callbacks are unchanged. Unconfirmed results are not announced.
+- `/rr performance` remains available for investigating any remaining stutter.
+
+### Validation
+
+- All 97 mocked Lua 5.1 behavior/layout/safety tests pass. Chat-only regressions
+  cover rapid batches, no overlay allocations, no fade/expiration redraws,
+  deferred rendering, long names, hidden results and exactly one chat message
+  per confirmed result. No game connection or real scrolls are used.
+- Offline tests do not prove that the overlay caused the reported stutter or
+  measure an in-game FPS improvement. Live Grimfall testing is still required.
+
 ## 0.9.2-rc3 - 2026-10-07
 
 Public pre-release focused on reducing work during rerolls and adding read-only
