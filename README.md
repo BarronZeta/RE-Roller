@@ -12,6 +12,11 @@ Unzip, then copy the **`GrimfallReroll`** folder into your game's **`Interface/A
 
 [All releases](https://github.com/BarronZeta/RE-Roller/releases) · [Installation](#installation) · [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose)
 
+The source now includes **0.9.3-rc1**, a performance-test candidate. The regular
+stable player download remains **0.9.2**. Candidate testing instructions are in
+[PERFORMANCE-TEST.txt](GrimfallReroll/PERFORMANCE-TEST.txt); offline checks do not
+prove the affected player's in-game FPS issue is resolved.
+
 > **Compatibility:** Grimfall only. This addon relies on Grimfall's custom classless APIs; it is not a Retail, Classic, or generic WotLK addon. A release does not guarantee compatibility with every future client update.
 
 ![RE: Roller by Vash running in Grimfall, with both history panels open and Hide Locked enabled](docs/images/ReRollPreview.png)
@@ -90,9 +95,31 @@ Confirmed rerolls send one **chat notification** with both spell icons, old-to-n
 | `/rr icon` | Restore the launcher to its default position |
 | `/rr diagnose` | Check required Grimfall APIs and show the current diagnostic status |
 | `/rr performance` or `/rr perf` | Print session build-scan and redraw timings, plus frame gaps observed while rolling |
+| `/rr perf reset` | Candidate: reset timing counters while no scan/roll is outstanding |
+| `/rr smooth off` / `/rr smooth on` | Candidate: synchronous / frame-spread display refresh, for this session only |
+| `/rr refresh sync` | Candidate: one full synchronous refresh while no reroll is outstanding |
 | `/rr history` | Print up to 20 recent history entries in chat |
 
 `/reroller`, `/rerolls`, and `/grr` are aliases for `/rr`.
+
+### Performance-test candidate (0.9.3-rc1)
+
+Window opening, Refresh and idle build updates spread read-only scans across
+frames, cache successful display-only spell metadata and reuse unchanged UI
+work. Partial snapshots cannot authorize a reroll. Live ownership, talent
+ranks, spec, locks and scrolls are still checked; request/result validation
+remains fully synchronous for safety.
+
+Slices target 4 ms, but an individual native API cannot be interrupted. Slow
+native tree reads can still cause a hitch, particularly during request/result
+validation. The candidate adds detailed API/slice/work/wall timing so further
+changes can follow actual client evidence. It preserves artwork, fonts, native
+animation callbacks, settings, per-spec locks and history.
+
+To test without scroll use: open `/rr`, wait for the build read, run
+`/rr perf reset`, click **Refresh**, wait, then send `/rr perf` with a description
+of any hitch. `/rr smooth off` restores synchronous display refresh for the
+session. All 139 mocked Lua 5.1 tests pass, but real-client FPS is not measured.
 
 ## Fonts and requirements
 

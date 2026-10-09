@@ -68,6 +68,7 @@ try {
   [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Performance.lua' -Raw))
   [void]$vm.DoString('RunPerformanceTests()')
   [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-SpecLocks.lua' -Raw))
+  [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Optimization.lua' -Raw))
   $results=@($vm.Globals.Get('results').Table.Values)
   $results|ForEach-Object {$_.String}
   [void]$vm.DoString('FinishTests()')

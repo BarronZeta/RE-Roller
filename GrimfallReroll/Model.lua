@@ -1,15 +1,25 @@
-GrimfallReroll = {version='0.9.2', selected={}, rows={}, byKey={}, queue={}, running=false, status='Open /rr to load your build.'}
+GrimfallReroll = {version='0.9.3-rc1', selected={}, rows={}, byKey={}, queue={}, running=false, buildEpoch=0, status='Open /rr to load your build.'}
 local R=GrimfallReroll
 R.scrolls={ability=640,talent=639}
 function R:Changed() if self.Render then self:Render() end end
 function R:SetStatus(text) if self.status==text then return end; self.status=text; self:Changed() end
 function R:MeasureWork(kind,started)
+    self:RecordWork(kind,debugprofilestop and math.max(0,debugprofilestop()-started) or 0)
+end
+function R:RecordWork(kind,ms)
     self.performance=self.performance or {}
     local p=self.performance[kind] or {calls=0,totalMS=0,maxMS=0}; self.performance[kind]=p
-    local ms=debugprofilestop and math.max(0,debugprofilestop()-started) or 0
+    ms=math.max(0,ms or 0)
     p.calls=p.calls+1; p.totalMS=p.totalMS+ms; p.maxMS=math.max(p.maxMS,ms)
 end
+function R:BuildChanged(clearMetadata)
+    self.buildEpoch=(self.buildEpoch or 0)+1;self.dirty=true
+    if clearMetadata and self.Client and self.Client.InvalidateMetadata then self.Client:InvalidateMetadata()end
+end
 function R:InitializeDB(db)
+    if self.Client and self.Client.CancelSnapshot then self.Client:CancelSnapshot('Database context changed.')end
+    self.refreshJob=nil;self.buildEpoch=(self.buildEpoch or 0)+1
+    if self.Client and self.Client.InvalidateMetadata then self.Client:InvalidateMetadata()end
     self.db=db; db.schema=1; db.characters=db.characters or {}; db.fast=db.fast~=false
     local character=(UnitName('player') or '?')..' - '..(GetRealmName() or '?')
     db.characters[character]=db.characters[character] or {specs={},history={}}
@@ -38,12 +48,11 @@ function R:SpecViewIsCurrent()
     return true
 end
 function R:CanEditEntry(key,spec,context)
-    if self.running or self.pending or not self:SpecViewIsCurrent() then return false end
+    if self.running or self.pending or self.refreshJob or not self:SpecViewIsCurrent() then return false end
     if (spec and spec~=self.spec) or (context and context~=self.lockContext) then return false end
     return self.byKey[key]~=nil
 end
-function R:Refresh()
-    local snapshot,reason=self.Client:Snapshot()
+function R:ApplySnapshot(snapshot,reason)
     if not snapshot then self:InvalidateSpecView(); self:SetStatus(reason); return nil end
     if self.spec~=snapshot.spec then
         local initial=self.spec==nil
@@ -52,7 +61,42 @@ function R:Refresh()
     end
     self.rows=snapshot.rows; self.byKey=snapshot.byKey; self.ready=true
     for key in pairs(self.selected) do if not self.byKey[key] or self:Locks(self.spec)[key] then self.selected[key]=nil end end
-    self.snapshot=snapshot; self:Changed(); return snapshot
+    self.snapshot=snapshot
+    -- This complete snapshot covers only the events observed before it finished.
+    -- Later events/notifications can set dirty again; pre-request reads remain fresh.
+    if snapshot.epoch==(self.buildEpoch or 0)then self.dirty=false;self.uiDirty=false end
+    self:Changed(); return snapshot
+end
+function R:CancelRefresh()
+    if self.refreshJob then self.Client:CancelSnapshot('Read-only refresh cancelled.');self.refreshJob=nil end
+end
+function R:Refresh()
+    self:CancelRefresh()
+    local snapshot,reason=self.Client:Snapshot()
+    return self:ApplySnapshot(snapshot,reason)
+end
+function R:RequestRefresh()
+    if self.running or self.pending then return end
+    if self.smoothReads==false then return self:Refresh()end
+    if self.refreshJob then return self.refreshJob end
+    local job=self.Client:BeginSnapshot();self.refreshJob=job
+    self.status='Reading build across frames...';self:Changed();return job
+end
+function R:SetSmoothReads(enabled)
+    self:CancelRefresh();self.smoothReads=enabled
+    self:SetStatus(enabled and 'Smooth read-only refreshes enabled for this session.' or 'Synchronous display refresh enabled for this session.')
+end
+function R:PollRefresh()
+    local job=self.refreshJob;if not job or not job.done then return end
+    self.refreshJob=nil
+    if not job.snapshot then
+        self:InvalidateSpecView();self:SetStatus(job.reason or 'Build read incomplete; refresh again.')
+        self.dirty=true;self.nextIdleRefresh=GetTime()+1;return
+    end
+    if job.snapshot.epoch~=(self.buildEpoch or 0) or self.Client:Spec()~=job.snapshot.spec then
+        self:InvalidateSpecView();self.dirty=true;self:SetStatus('Build changed during refresh; reading again.');return
+    end
+    return self:ApplySnapshot(job.snapshot)
 end
 function R:Toggle(key)
     if not self:CanEditEntry(key) or self:Locks(self.spec)[key] then return end
@@ -75,6 +119,7 @@ function R:Totals()
 end
 function R:Clear() if self.running or self.pending then return end; self.selected={}; self:Changed() end
 function R:Stop(reason)
+    self:CancelRefresh()
     local active=self.running or self.pending
     self.running=false; self.queue={}; self.paused=false
     -- An already sent request cannot be recalled; continue observing it, but never send the next one.
@@ -86,6 +131,7 @@ end
 function R:Start(kindFilter)
     if self.pending or self.running then return end
     if kindFilter and kindFilter~='ability' and kindFilter~='talent' then return end
+    self:CancelRefresh()
     local snapshot=self:Refresh(); if not snapshot then return end
     local safe,reason=self.Client:Safe(); if not safe then self:SetStatus(reason); return end
     local totals=self:Totals()
@@ -197,6 +243,7 @@ function R:CheckPending()
     table.insert(self.character.history,1,record); while #self.character.history>100 do table.remove(self.character.history) end
     self.pending=nil; self.done=(self.done or 0)+1; self.expected=after; self.nextAt=GetTime()+0.6
     self.rows=after.rows; self.byKey=after.byKey; self.snapshot=after; self.ready=true
+    if after.epoch==(self.buildEpoch or 0)then self.dirty=false;self.uiDirty=false end
     if self.Notify then self:Notify(record,true) end
     self.status='Confirmed: '..record.oldName..' -> '..record.newName..(self.paused and ' (paused)' or '')
     self:Changed()

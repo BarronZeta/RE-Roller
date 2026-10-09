@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.9.3-rc1 - 2026-10-09
+
+Performance-test pre-release; 0.9.2 remains the regular stable release.
+
+### Changed
+
+- Spread read-only window opening, Refresh and idle build scans across frames.
+  Partial snapshots never become selectable or authorize a reroll; build/spec
+  changes cancel outdated reads. Closing/Stop cancels the display job.
+- Target 4 ms per display-read slice, with call/node bounds when native timing
+  is unavailable and a 30-second deadline. One native call cannot be interrupted
+  and may exceed the target. Full request/result validation stays synchronous.
+- Cache successful display-only spell metadata in a bounded session cache;
+  read current ownership, talent ranks, spec, locks and scroll counts fresh.
+  Invalidate display metadata on build events, API replacement or locale change.
+- Reduce redundant idle reads after a confirmed result and avoid unchanged
+  row text/icon/style work. Keep artwork, fonts and native animation callbacks.
+- Expand `/rr perf` with stage/API timing, refresh slice/work/wall timing and
+  cache counters. Add `/rr perf reset`, session-only `/rr smooth on|off` and
+  idle-only `/rr refresh sync` for a synchronous fallback.
+
+### Validation and limits
+
+- All 139 mocked Lua 5.1 regressions pass, including all 118 existing checks
+  and 21 new optimization/safety checks; six runtime modules compile.
+- Golden old/new snapshot comparison matches rows, keys, ranks, IDs, names and
+  icons. Injected API-cost tests show fewer warm lookups and smaller read-only
+  slices, not a live FPS improvement. Cold simulated snapshot cost is unchanged.
+- Full fresh pre-request and post-result confirmation checks are intentionally
+  synchronous. Clients with slow native tree APIs may still hitch there.
+- Per-spec locks, history, settings and saved schema are unchanged. Tests never
+  connect to a game server or consume real scrolls. The affected player's
+  in-game performance is not yet verified; use the included test instructions.
+
 ## 0.9.2 - 2026-10-07
 
 Regular release of the tested rc5 feature set, published without pre-release

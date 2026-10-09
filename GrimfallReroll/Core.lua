@@ -14,6 +14,10 @@ frame:SetScript('OnEvent',function(self,event,...)
         R.Client:HookAnimation(); R:CreateLauncher(); return
     end
     if not R.db then return end
+    if event=='CUSTOM_CLASSLESS_WILDCARD_SPELL_ROLLED' or event=='CUSTOM_CLASSLESS_WILDCARD_TALENT_LEARN'
+        or event=='ACTIVE_TALENT_GROUP_CHANGED' or event=='SPELLS_CHANGED' or event=='PLAYER_TALENT_UPDATE' or event=='PLAYER_ENTERING_WORLD'then
+        R:BuildChanged(true)
+    end
     if event=='CUSTOM_CLASSLESS_WILDCARD_SPELL_ROLLED' then R:Result('presentation',arg)
     elseif event=='CUSTOM_CLASSLESS_WILDCARD_TALENT_LEARN' then R:Result('talent',arg)
     elseif event=='ACTIVE_TALENT_GROUP_CHANGED' then
@@ -29,6 +33,9 @@ frame:SetScript('OnEvent',function(self,event,...)
 end)
 frame:SetScript('OnUpdate',function(self,dt)
     if not R.db then return end
+    -- Only read-only display scans are spread across frames. Mutating request
+    -- validation and result confirmation retain their original complete reads.
+    if R.refreshJob then R.Client:AdvanceSnapshot();R:PollRefresh()end
     if R.running or R.pending then
         R.performance=R.performance or {}
         local p=R.performance; p.maxFrameGap=math.max(p.maxFrameGap or 0,dt)
@@ -37,9 +44,10 @@ frame:SetScript('OnUpdate',function(self,dt)
     elapsed=elapsed+dt; if elapsed<0.3 then return end; elapsed=0
     if R.pending or R.running then R:Step(false)
     elseif R.window and R.window:IsShown() then
+        if R.refreshJob then return end
         R:SpecViewIsCurrent() -- Cheap fallback if the custom client omits a spec-change event.
         if R.dirty and GetTime()>=(R.nextIdleRefresh or 0) then
-            R.dirty=false; R.uiDirty=false; R.nextIdleRefresh=GetTime()+1; R:Refresh()
+            R.dirty=false; R.uiDirty=false; R.nextIdleRefresh=GetTime()+1; R:RequestRefresh()
         elseif R.uiDirty then R.uiDirty=false; R:Changed() end
     end
 end)
@@ -53,6 +61,11 @@ SlashCmdList.GRIMFALLREROLL=function(msg)
     elseif msg=='icon' then R:CreateLauncher(true)
     elseif msg=='diagnose' then R.Client:Diagnose()
     elseif msg=='performance' or msg=='perf' then R.Client:PerformanceReport()
+    elseif msg=='performance reset' or msg=='perf reset' then R.Client:ResetPerformance()
+    elseif msg=='smooth on' then R:SetSmoothReads(true)
+    elseif msg=='smooth off' then R:SetSmoothReads(false)
+    elseif msg=='refresh sync' then
+        if not R.running and not R.pending then R:Refresh()else R:SetStatus('Finish or stop the current reroll before a manual refresh.')end
     elseif msg=='history' then
         for i=1,20 do local h=R.character and R.character.history[i]; if h then DEFAULT_CHAT_FRAME:AddMessage(date('%H:%M',h.at)..' '..h.kind..': '..h.oldName..' -> '..h.newName..' ('..h.spent..' scroll)') end end
     else R:ToggleUI() end

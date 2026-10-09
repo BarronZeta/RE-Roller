@@ -1,14 +1,30 @@
-RE: Roller by Vash 0.9.2 - Spec-switch lock safety and chat-only results
+RE: Roller by Vash 0.9.3-rc1 - Performance-test candidate
 
-RELEASE 0.9.2
-- Regular GitHub release of the tested rc5 feature set. Only the version label
-  and release documentation differ from that locally installed candidate.
-- Includes the spec-switch lock fix, chat-only roll results, built-in font,
-  reduced repeated scan/redraw work, and /rr performance diagnostics.
-- No reset or migration of saved locks, preferences or reroll history.
-- All 118 offline Lua 5.1 regressions pass. The spec-switch fix has not yet
-  received an in-game confirmation, and live FPS improvement is unmeasured.
-- For Grimfall's custom WoW 3.3.5a client only.
+NEW IN 0.9.3-rc1
+- Read-only window opening, Refresh and idle build updates read the full build
+  across frames. Partial reads never become selectable or authorize a reroll.
+- Refresh slices target 4 ms, with call/node bounds when timing is unavailable.
+  A single native game API cannot be interrupted and can exceed that target.
+- Display-only spell names/rank text/icons use a bounded session cache. Known
+  abilities, current talent ranks, spec, locks and scroll counts stay live.
+- Build/spec events cancel outdated reads and invalidate display metadata.
+  Closing or stopping cancels the read-only job; a 30-second deadline prevents
+  a job staying open forever. A synchronous manual fallback is available.
+- Redundant idle reads after a validated result and unchanged row/icon/style
+  updates are reduced. Artwork, fonts and native animation callbacks are intact.
+- Full pre-request and post-result validation remains synchronous. This may
+  still cause a hitch on clients with slow native talent-tree APIs; safety and
+  confirmation checks have not been weakened to claim a speed improvement.
+- /rr perf now separates read work, refresh slices, wall time, native API costs
+  and display-cache hits. /rr perf reset starts a clean measurement.
+- /rr smooth off (or on) changes only the current session's display refresh
+  mode. /rr refresh sync performs one full read when no reroll is outstanding.
+- Existing saved-data schema, settings, per-spec locks and history are retained.
+- All 139 mocked Lua 5.1 regressions pass, including all 118 prior checks and
+  21 new optimization/safety checks. Golden old/new snapshots match. Simulated
+  API-cost benchmarks are not live FPS measurements or proof a hitch is fixed.
+- This candidate is not a new public stable release. See PERFORMANCE-TEST.txt
+  for safe tester steps and the remaining native-call limitations.
 
 NEW IN 0.9.2-rc5
 - Lock, unlock and selection clicks verify the live active spec before editing.
@@ -61,7 +77,7 @@ NEW IN 0.9.2-rc2
 - Result colors, wrapping, fading and one-at-a-time presentation are retained.
 - Reroll timing, history, locks, filters, artwork and window settings are unchanged.
 
-NEW IN 0.9.2-rc1 (PRIVATE DEVELOPMENT BUILD)
+NEW IN 0.9.2
 - Restored the fading result notice above/in front of the planner, with both
   spell icons and clear old -> new text (font updated in rc2 above).
 - Ability results use gold; talent results use violet. Long names wrap inside

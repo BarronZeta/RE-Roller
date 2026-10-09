@@ -47,12 +47,19 @@ local function button(parent,text,width,fn)
     b:SetText(text); b:SetScript('OnClick',fn); return b
 end
 local function icon(id)
+    if R.Client and R.Client.SpellMetadata then
+        local ok,_,_,texture=R.Client:SpellMetadata(id)
+        if ok then return texture or 'Interface\\Icons\\INV_Misc_QuestionMark'end
+        return 'Interface\\Icons\\INV_Misc_QuestionMark'
+    end
     local _,_,texture=GetSpellInfo(id); return texture or 'Interface\\Icons\\INV_Misc_QuestionMark'
 end
 local function textureTag(id,size) return '|T'..icon(id)..':'..(size or 20)..'|t ' end
 local function styleScroll(scroll)
     local name=scroll:GetName(); local bar=name and _G[name..'ScrollBar']
     if not bar then return end
+    if scroll.rollerStyledBar==bar then return end
+    scroll.rollerStyledBar=bar
     bar:SetWidth(8); bar:ClearAllPoints(); bar:SetPoint('TOPLEFT',scroll,'TOPRIGHT',9,-2); bar:SetPoint('BOTTOMLEFT',scroll,'BOTTOMRIGHT',9,2)
     bar:SetBackdrop({bgFile='Interface\\Buttons\\WHITE8X8'}); bar:SetBackdropColor(0.12,0.13,0.14,0.8)
     for _,suffix in ipairs({'ScrollUpButton','ScrollDownButton'}) do
@@ -126,7 +133,7 @@ function R:CreateUI()
         GameTooltip:AddLine(s.verified and 'Current Grimfall specialization' or 'Spec details are not available from the client yet.',0.85,0.87,0.9,true);GameTooltip:Show()
     end)
     w.specBadge:SetScript('OnLeave',function() GameTooltip:Hide() end)
-    w.refresh=button(w.headerSurface,'Refresh',80,function() if not R.pending and not R.running then R:Refresh() end end); w.refresh:SetPoint('TOPRIGHT',-51,-9)
+    w.refresh=button(w.headerSurface,'Refresh',80,function() if not R.pending and not R.running then R:RequestRefresh() end end); w.refresh:SetPoint('TOPRIGHT',-51,-9)
     w.panels={}
     for _,kind in ipairs({'ability','talent'}) do
         local p=CreateFrame('Frame',nil,w); w.panels[kind]=p; p.accent=colors[kind]; panel(p,16)
@@ -279,11 +286,16 @@ function R:Render()
                 if b.entry~=entry and GameTooltip:IsOwned(b) then GameTooltip:Hide() end
                 b.entry=entry; b:SetPoint('TOPLEFT',0,-(index-1)*54); b:SetWidth(p.canvas:GetWidth()); b:Show()
                 b.shade:SetVertexColor(1,1,1,index%2==0 and 0.035 or 0.015)
-                R.Skin.Sprite(b.box,'Unchecked')
-                R.Skin.Sprite(b.mark,kind=='ability' and 'CheckedGold' or 'CheckedViolet'); b.mark:SetVertexColor(1,1,1,1)
+                if not b.staticArtReady then
+                    R.Skin.Sprite(b.box,'Unchecked')
+                    R.Skin.Sprite(b.mark,kind=='ability' and 'CheckedGold' or 'CheckedViolet');b.mark:SetVertexColor(1,1,1,1);b.staticArtReady=true
+                end
                 if locked then b.box:Hide(); b.mark:Hide(); b.lock:Show()
                 else b.box:Show(); b.lock:Hide(); if self.selected[entry.key] then b.mark:Show() else b.mark:Hide() end end
-                b.icon:SetTexture(entry.icon or icon(entry.spellID)); b.name:SetText(entry.name..(entry.kind=='talent' and (' ('..entry.rank..')') or ''))
+                local iconPath=entry.icon or icon(entry.spellID)
+                local nameText=entry.name..(entry.kind=='talent' and (' ('..entry.rank..')') or '')
+                if b.lastIcon~=iconPath then b.icon:SetTexture(iconPath);b.lastIcon=iconPath end
+                if b.lastName~=nameText then b.name:SetText(nameText);b.lastName=nameText end
                 local selected=self.selected[entry.key] and not locked
                 if locked then b.name:SetTextColor(0.86,0.86,0.84); b.icon:SetVertexColor(0.9,0.9,0.9,1)
                 elseif selected then b.name:SetTextColor(unpack(p.accent)); b.icon:SetVertexColor(1,1,1,1)
@@ -314,14 +326,14 @@ function R:Render()
         p.cost:SetText(totals[kind]==0 and 'Nothing queued' or (totals[kind]..' queued / '..totals[kind]..' scrolls'))
         local enough=n and n>=totals[kind]
         p.cost:SetTextColor(enough and 0.9 or 1,enough and 0.85 or 0.3,enough and 0.7 or 0.25)
-        if self.ready and not self.running and not self.pending and totals[kind]>0 and enough then p.start:Enable() else p.start:Disable() end
+        if self.ready and not self.running and not self.pending and not self.refreshJob and totals[kind]>0 and enough then p.start:Enable() else p.start:Disable() end
     end
     w.status:SetText(self.status or '')
     self:RenderAnnouncements()
     self:RenderHistory()
     styleScroll(w.announcementScroll)
     w.fast:SetChecked(self.db.fast)
-    local busy=self.running or self.pending
+    local busy=self.running or self.pending or self.refreshJob
     if busy then w.clear:Disable(); w.refresh:Disable(); w.fast:Disable() else w.clear:Enable(); w.refresh:Enable(); w.fast:Enable() end
     if self.running then w.pause:Enable() else w.pause:Disable() end
     if busy then w.stop:Enable() else w.stop:Disable() end
@@ -523,7 +535,7 @@ function R:Notify(record,deferRender)
 end
 function R:ToggleUI()
     self:CreateUI()
-    if self.window:IsShown() then self.window:Hide() else self.window:Show(); self:Refresh(); self:Render() end
+    if self.window:IsShown() then self.window:Hide() else self.window:Show(); self:RequestRefresh() end
 end
 function R:CreateLauncher(resetPosition)
     if not self.launcher then

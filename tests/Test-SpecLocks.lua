@@ -11,6 +11,15 @@ local function idleTick()
     for _,f in ipairs(PreviewFrames) do
         if f.events.ADDON_LOADED and f:GetScript('OnUpdate') then f:GetScript('OnUpdate')(f,0.4) end
     end
+    -- Display refresh now yields. Drive only its read-only frames before
+    -- checking the same completed-view/lock invariants as the prior suite.
+    for i=1,40 do
+        if not GrimfallReroll.refreshJob then break end
+        clock=clock+0.01
+        for _,f in ipairs(PreviewFrames) do
+            if f.events.ADDON_LOADED and f:GetScript('OnUpdate') then f:GetScript('OnUpdate')(f,0.01)end
+        end
+    end
 end
 local function prepare()
     local R=reset()
