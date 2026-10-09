@@ -1,6 +1,6 @@
-RE: Roller by Vash 0.9.3-rc1 - Performance-test candidate
+RE: Roller by Vash 0.9.3 - Performance update
 
-NEW IN 0.9.3-rc1
+NEW IN 0.9.3
 - Read-only window opening, Refresh and idle build updates read the full build
   across frames. Partial reads never become selectable or authorize a reroll.
 - Refresh slices target 4 ms, with call/node bounds when timing is unavailable.
@@ -23,8 +23,9 @@ NEW IN 0.9.3-rc1
 - All 139 mocked Lua 5.1 regressions pass, including all 118 prior checks and
   21 new optimization/safety checks. Golden old/new snapshots match. Simulated
   API-cost benchmarks are not live FPS measurements or proof a hitch is fixed.
-- This candidate is not a new public stable release. See PERFORMANCE-TEST.txt
-  for safe tester steps and the remaining native-call limitations.
+- Published as a regular release. This changes the version label and release
+  status, not the validated rc1 gameplay logic. See PERFORMANCE-TEST.txt for
+  safe diagnostic steps and the remaining native-call limitations.
 
 NEW IN 0.9.2-rc5
 - Lock, unlock and selection clicks verify the live active spec before editing.

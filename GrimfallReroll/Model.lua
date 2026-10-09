@@ -1,4 +1,4 @@
-GrimfallReroll = {version='0.9.3-rc1', selected={}, rows={}, byKey={}, queue={}, running=false, buildEpoch=0, status='Open /rr to load your build.'}
+GrimfallReroll = {version='0.9.3', selected={}, rows={}, byKey={}, queue={}, running=false, buildEpoch=0, status='Open /rr to load your build.'}
 local R=GrimfallReroll
 R.scrolls={ability=640,talent=639}
 function R:Changed() if self.Render then self:Render() end end

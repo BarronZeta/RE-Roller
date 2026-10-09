@@ -52,7 +52,7 @@ Lua 5.1 installation and runs the same validation/packaging entry point.
 - Performance regressions cover bounded build scans, native-animation waits,
   event bursts, unchanged history reuse, and read-only performance reports.
   These work-count checks are not live frame-rate benchmarks.
-- The 0.9.3-rc1 suite includes display-cache invalidation/bounds, live talent
+- The 0.9.3 suite includes display-cache invalidation/bounds, live talent
   rank reads, coroutine slice limits, cancellation on build/spec change,
   incomplete/malformed reads, timeout and synchronous fallback. Partial
   display reads cannot edit entries or authorize native reroll requests.
@@ -69,7 +69,7 @@ public download links only when the new release is actually published.
 
 Use `-OutputDirectory dist/0.9.2` when building beside an existing release
 so its manifest and checksums are preserved along with its ZIP.
-The current test candidate uses `-OutputDirectory dist/0.9.3-rc1`.
+The current release uses `-OutputDirectory dist/0.9.3`.
 
 The repository license and `GrimfallReroll/LICENSE.txt` must stay identical.
 The packaged source retains its tested line endings through `.gitattributes`.
@@ -80,10 +80,12 @@ The packaged source retains its tested line endings through `.gitattributes`.
 2. Check native behavior in the intended Grimfall client where possible, and
    state what was and was not verified.
 3. Build in a clean checkout. Packaging refuses to overwrite an existing ZIP.
-4. Tag the exact commit and prepare a GitHub release. Keep release candidates
-   marked as pre-releases. When the maintainer promotes a candidate, use an
-   unsuffixed version and publish it as a regular release; retain the actual
-   validation limits in its notes. Do not rewrite earlier releases or tags.
+4. Tag the exact commit and publish user-facing updates as regular releases
+   with an unsuffixed version by default, per the maintainer's preference.
+   Set the new regular version as Latest and update the main player download
+   link after publication. Use pre-releases only if explicitly requested by
+   the maintainer. Retain actual validation limits in the notes regardless
+   of release status. Do not rewrite earlier releases or tags.
 5. Attach the generated named ZIP, `SHA256SUMS.txt`, and `manifest.json`.
 6. Verify the uploaded downloads before announcing the release.
 

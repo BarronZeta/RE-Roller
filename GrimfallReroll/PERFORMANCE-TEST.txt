@@ -1,4 +1,4 @@
-RE: Roller by Vash 0.9.3-rc1 - Performance test
+RE: Roller by Vash 0.9.3 - Performance diagnostics
 
 WHAT CHANGED
 Opening /rr, using Refresh and processing idle build changes now spread the
@@ -9,7 +9,7 @@ are reduced. The interface layout, artwork, fonts and Quick animation remain.
 WHAT DID NOT CHANGE
 Every reroll request still needs a complete fresh build/spec/lock check. Every
 result still needs the native result signal, one actual replacement and exactly
-one matching scroll. Full request/result reads are synchronous in this candidate.
+one matching scroll. Full request/result reads remain synchronous in this release.
 No partial read can authorize a request. Combat, stale-spec, stop, timeout and
 protected-action guards remain. Settings, locks and history use the same schema.
 
@@ -18,7 +18,7 @@ TEST WITHOUT SPENDING SCROLLS FIRST
 2. Open /rr and wait for "Reading build across frames..." to finish.
 3. Run /rr perf reset. Click Refresh once, wait until it finishes, then /rr perf.
 4. Send the complete report and note whether Refresh feels smoother. Version
-   should read 0.9.3-rc1. No reroll or scroll use is needed for this first test.
+   should read 0.9.3. No reroll or scroll use is needed for this first test.
 5. If you already intend to reroll, reset the report again while idle, perform
    those intended rolls, then send /rr perf and note when any hitch occurs:
    window opening, Refresh, clicking reroll, native animation, or result display.
@@ -47,10 +47,10 @@ VALIDATION AND LIMITS
 Golden old/new build rows, keys, ranks, IDs, names and icons match. A controlled
 API-cost simulation showed smaller read-only slices and fewer warm lookups;
 cold reads were unchanged. These are injected costs, not measured game FPS.
-This candidate has not been verified in the affected tester's game client.
+This update has not been verified in the affected tester's game client.
 Full synchronous request/result checks can still hitch and need fresh timings
 before considering a more invasive validation redesign.
 
 Install only GrimfallReroll. This package does not include or modify Postal,
 Auctionator, Build Suite Manager, game settings or any SavedVariables files.
-The existing public stable release remains 0.9.2; this is a pre-release test build.
+Published as a regular release. Release status does not imply measured FPS gains.

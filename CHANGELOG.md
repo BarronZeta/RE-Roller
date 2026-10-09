@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.3 - 2026-10-09
+
+Regular release of the validated 0.9.3-rc1 performance update, published at the
+maintainer's request. Only version labels and release documentation change;
+the gameplay and diagnostic implementation is identical to rc1.
+
+- All 139 offline Lua 5.1 regressions pass; all 38 package files match reviewed
+  source. Artwork, fonts, native callbacks and saved data schema are unchanged.
+- Regular release status does not imply a measured FPS improvement. The affected
+  player's live timings are still needed; full request/result reads stay
+  synchronous for safety. See the improvements and limits under rc1 below.
+- User-facing updates use ordinary releases by default, not pre-releases.
+
 ## 0.9.3-rc1 - 2026-10-09
 
 Performance-test pre-release; 0.9.2 remains the regular stable release.

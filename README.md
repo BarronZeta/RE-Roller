@@ -12,8 +12,8 @@ Unzip, then copy the **`GrimfallReroll`** folder into your game's **`Interface/A
 
 [All releases](https://github.com/BarronZeta/RE-Roller/releases) · [Installation](#installation) · [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose)
 
-The source now includes **0.9.3-rc1**, a performance-test candidate. The regular
-stable player download remains **0.9.2**. Candidate testing instructions are in
+The **0.9.3 performance update** adds smoother display refreshes and detailed
+timing reports. Performance diagnostic instructions are in
 [PERFORMANCE-TEST.txt](GrimfallReroll/PERFORMANCE-TEST.txt); offline checks do not
 prove the affected player's in-game FPS issue is resolved.
 
@@ -95,14 +95,14 @@ Confirmed rerolls send one **chat notification** with both spell icons, old-to-n
 | `/rr icon` | Restore the launcher to its default position |
 | `/rr diagnose` | Check required Grimfall APIs and show the current diagnostic status |
 | `/rr performance` or `/rr perf` | Print session build-scan and redraw timings, plus frame gaps observed while rolling |
-| `/rr perf reset` | Candidate: reset timing counters while no scan/roll is outstanding |
-| `/rr smooth off` / `/rr smooth on` | Candidate: synchronous / frame-spread display refresh, for this session only |
-| `/rr refresh sync` | Candidate: one full synchronous refresh while no reroll is outstanding |
+| `/rr perf reset` | Reset timing counters while no scan/roll is outstanding |
+| `/rr smooth off` / `/rr smooth on` | Synchronous / frame-spread display refresh, for this session only |
+| `/rr refresh sync` | One full synchronous refresh while no reroll is outstanding |
 | `/rr history` | Print up to 20 recent history entries in chat |
 
 `/reroller`, `/rerolls`, and `/grr` are aliases for `/rr`.
 
-### Performance-test candidate (0.9.3-rc1)
+### Performance update (0.9.3)
 
 Window opening, Refresh and idle build updates spread read-only scans across
 frames, cache successful display-only spell metadata and reuse unchanged UI
@@ -112,7 +112,7 @@ remains fully synchronous for safety.
 
 Slices target 4 ms, but an individual native API cannot be interrupted. Slow
 native tree reads can still cause a hitch, particularly during request/result
-validation. The candidate adds detailed API/slice/work/wall timing so further
+validation. The update adds detailed API/slice/work/wall timing so further
 changes can follow actual client evidence. It preserves artwork, fonts, native
 animation callbacks, settings, per-spec locks and history.
 
