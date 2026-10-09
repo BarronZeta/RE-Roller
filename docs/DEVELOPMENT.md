@@ -73,9 +73,8 @@ public download links only when the new release is actually published.
 
 Use `-OutputDirectory dist/0.9.2` when building beside an existing release
 so its manifest and checksums are preserved along with its ZIP.
-The current release uses `-OutputDirectory dist/0.9.3`.
-The 0.9.4 update is packaged separately with `-OutputDirectory dist/0.9.4`;
-keep existing release artifacts unchanged.
+The current release uses `-OutputDirectory dist/0.9.4`.
+Keep existing release artifacts unchanged.
 
 The repository license and `GrimfallReroll/LICENSE.txt` must stay identical.
 The packaged source retains its tested line endings through `.gitattributes`.
