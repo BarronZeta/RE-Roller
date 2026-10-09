@@ -20,6 +20,7 @@ dofile('tests/Test-Performance.lua')
 RunPerformanceTests()
 dofile('tests/Test-SpecLocks.lua')
 dofile('tests/Test-Optimization.lua')
+dofile('tests/Test-Startup.lua')
 for _, result in ipairs(results) do print(result) end
 FinishTests()
 print('PASS: '..#results..' offline behavior/layout tests; mock APIs only.')

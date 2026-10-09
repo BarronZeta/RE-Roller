@@ -50,12 +50,12 @@ test('read-only refresh publishes no partial rows and rejects selection and lock
  R.Client:AdvanceSnapshot();R:PollRefresh();assert(R.refreshJob and R.rows==oldRows and #calls==0)
  advance(R);assert(R.ready and R.rows~=oldRows and R.byKey['T:201'] and #calls==0)
 end)
-test('starting a roll cancels a partial display job and still makes full synchronous pre-request reads',function()
+test('starting a roll cancels a partial display job and makes one complete synchronous startup read',function()
  local R=reset();R:Toggle('A:101');R:RequestRefresh();local job=R.refreshJob
  local original=R.Client.Snapshot;local scans=0
  R.Client.Snapshot=function(...)scans=scans+1;return original(...)end
  R:Start();R.Client.Snapshot=original
- assert(job.done and not job.snapshot and not R.refreshJob and scans==2 and #calls==1 and R.pending)
+ assert(job.done and not job.snapshot and not R.refreshJob and scans==1 and #calls==1 and R.pending)
 end)
 test('result confirmation retains its complete synchronous read and exact-scroll requirement',function()
  local R=reset();R:Toggle('A:101');R:Start();R:Result('ability',103)

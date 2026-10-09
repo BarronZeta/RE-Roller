@@ -91,6 +91,7 @@ Confirmed rerolls send one **chat notification** with both spell icons, old-to-n
 | Command | Action |
 | --- | --- |
 | `/rr` | Open or close the planner |
+| `/rr help` | List commands without changing the window or queue |
 | `/rr stop` | Stop sending further reroll requests |
 | `/rr icon` | Restore the launcher to its default position |
 | `/rr diagnose` | Check required Grimfall APIs and show the current diagnostic status |
@@ -101,6 +102,26 @@ Confirmed rerolls send one **chat notification** with both spell icons, old-to-n
 | `/rr history` | Print up to 20 recent history entries in chat |
 
 `/reroller`, `/rerolls`, and `/grr` are aliases for `/rr`.
+
+From 0.9.4, unknown commands print help without closing the window or stopping
+the queue. Command case and extra spaces are accepted. The command is **perf**,
+not **pref**; reset only clears counters, while `/rr perf` prints in chat.
+
+### Startup and diagnostic fixes (0.9.4)
+
+Queue startup now uses one complete fresh synchronous read for the immediate
+first request instead of reading twice. Reuse is limited to that same call
+stack with unchanged build/spec context; background scans and earlier-frame
+snapshots are never used to authorize a roll. Waiting for an animation or
+pausing discards the shortcut. Later requests and all result confirmations
+retain their complete reads and live safety checks.
+
+Successful same-spec refreshes clear the stuck "Reading build across frames..."
+label. `/rr perf` now counts same-action startup reads reused. All 158 mocked
+Lua 5.1 regressions pass. A four-roll queue requires eight validation reads
+instead of nine, excluding display refreshes. This removes one avoidable
+native ability-list call per immediate queue start; it does not make the
+remaining native calls faster or establish a measured FPS improvement.
 
 ### Performance update (0.9.3)
 

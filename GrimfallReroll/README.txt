@@ -1,4 +1,22 @@
-RE: Roller by Vash 0.9.3 - Performance update
+RE: Roller by Vash 0.9.4 - Startup and diagnostic fixes
+
+NEW IN 0.9.4
+- Start the first roll using one complete fresh synchronous build read instead
+  of two immediate reads. Reuse is restricted to the same startup call stack,
+  with unchanged build epoch, spec and current snapshot. Changed context triggers
+  a fresh read. Animation waits and pauses never keep the shortcut for later.
+- Later rolls and every result confirmation still read the complete build.
+  Combat, death, locks, scroll counts, exact results and no-retry guards remain.
+- Clear the stuck "Reading build across frames..." message when a same-spec
+  display scan finishes. Preserve unrelated stop/error/result messages.
+- Unknown commands (including /rr pref) now show help without closing the
+  window or stopping rolls. Use /rr help; command case and extra spaces work.
+- /rr perf prints the report IN CHAT; /rr perf reset clears timing counters.
+  The report now counts same-action startup reads reused.
+- All 158 offline Lua 5.1 regressions pass. A normal four-roll queue uses eight
+  full validation reads instead of nine, excluding display refreshes. A native
+  ability-list call may still hitch; this is not a guarantee of improved FPS.
+- Your saved settings, per-spec locks, history and the interface are unchanged.
 
 NEW IN 0.9.3
 - Read-only window opening, Refresh and idle build updates read the full build

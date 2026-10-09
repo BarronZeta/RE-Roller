@@ -58,7 +58,11 @@ Lua 5.1 installation and runs the same validation/packaging entry point.
   display reads cannot edit entries or authorize native reroll requests.
 - All 118 prior regressions remain; the two spec-lock recovery helpers now
   advance read-only frames to completion before checking the completed view.
-  Immediate stale-spec invalidation checks remain immediate. Total: 139.
+  Immediate stale-spec invalidation checks remain immediate.
+- The 0.9.4 startup suite adds 19 regressions for same-call-stack full-read
+  reuse, fresh reads after context changes or waits, retained lock/scroll/combat
+  guards, complete four-roll validation counts, scan-status ownership and
+  non-destructive command parsing. Total: 158. No game requests are sent.
 - Every ZIP member has the correct `GrimfallReroll/` prefix and matches its
   per-file SHA-256 hash.
 
@@ -70,6 +74,8 @@ public download links only when the new release is actually published.
 Use `-OutputDirectory dist/0.9.2` when building beside an existing release
 so its manifest and checksums are preserved along with its ZIP.
 The current release uses `-OutputDirectory dist/0.9.3`.
+The 0.9.4 update is packaged separately with `-OutputDirectory dist/0.9.4`;
+keep existing release artifacts unchanged.
 
 The repository license and `GrimfallReroll/LICENSE.txt` must stay identical.
 The packaged source retains its tested line endings through `.gitattributes`.

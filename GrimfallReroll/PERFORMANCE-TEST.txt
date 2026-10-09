@@ -1,6 +1,16 @@
-RE: Roller by Vash 0.9.3 - Performance diagnostics
+RE: Roller by Vash 0.9.4 - Performance diagnostics
 
 WHAT CHANGED
+Queue startup uses its one complete fresh synchronous build read for the
+immediate first request instead of reading twice. It is never retained across
+frames, pauses or animation waits; changed spec/build context requires a reread.
+Later requests and all result checks still read the complete build. The report
+counts same-action startup reads reused. A slow native ability-list call still
+cannot be interrupted; this update removes one duplicate call, not that cost.
+Successful same-spec scans now clear their reading message. Unknown commands
+show help rather than closing the window. The command is /rr PERF, not PREF.
+
+Retained from 0.9.3:
 Opening /rr, using Refresh and processing idle build changes now spread the
 read-only build scan across frames. Successful display metadata is cached for
 the current session. Unchanged row/icon/style work and duplicate idle refreshes
@@ -18,16 +28,22 @@ TEST WITHOUT SPENDING SCROLLS FIRST
 2. Open /rr and wait for "Reading build across frames..." to finish.
 3. Run /rr perf reset. Click Refresh once, wait until it finishes, then /rr perf.
 4. Send the complete report and note whether Refresh feels smoother. Version
-   should read 0.9.3. No reroll or scroll use is needed for this first test.
+   should read 0.9.4. The report appears in CHAT; reset only prints a reset
+   confirmation. No reroll or scroll use is needed for this first test.
 5. If you already intend to reroll, reset the report again while idle, perform
    those intended rolls, then send /rr perf and note when any hitch occurs:
    window opening, Refresh, clicking reroll, native animation, or result display.
+   A normal uninterrupted queue should show one same-action startup reuse.
+   A delayed start or changed context may correctly report zero. Four confirmed
+   rolls normally use eight full validation reads, excluding display refreshes
+   and any retries waiting for an incomplete result. Compare the same workload.
 
 FALLBACKS
 /rr smooth off     Synchronous display refresh for this session.
 /rr smooth on      Frame-spread display refresh for this session (default).
 /rr refresh sync   One manual full refresh, only with no outstanding reroll.
 /rr stop           Stop the queue/cancel an active display refresh as before.
+/rr help           List commands without changing the window or queue.
 The smooth setting is intentionally not saved. Reload returns to the default.
 If a read-only scan times out, close the window, use /rr smooth off, then reopen
 or /rr refresh sync while idle. A timeout does not send a reroll or retry one.
@@ -43,7 +59,10 @@ Warm metadata can reduce repeated spell lookups, but build events invalidate it.
 Frame gaps include the game and other addons; they do not prove a single cause.
 
 VALIDATION AND LIMITS
-139 mocked Lua 5.1 regressions and six module compilation checks passed.
+158 mocked Lua 5.1 regressions and six module compilation checks passed.
+Startup tests cover slow learned-ID calls, four complete rolls, changed build
+epoch/spec, live locks/scrolls/combat/death, animation waits, and missed events
+before later requests. Scan labels and non-destructive commands are also tested.
 Golden old/new build rows, keys, ranks, IDs, names and icons match. A controlled
 API-cost simulation showed smaller read-only slices and fewer warm lookups;
 cold reads were unchanged. These are injected costs, not measured game FPS.
@@ -53,4 +72,4 @@ before considering a more invasive validation redesign.
 
 Install only GrimfallReroll. This package does not include or modify Postal,
 Auctionator, Build Suite Manager, game settings or any SavedVariables files.
-Published as a regular release. Release status does not imply measured FPS gains.
+Packaged with an ordinary version. Release status does not imply measured FPS gains.

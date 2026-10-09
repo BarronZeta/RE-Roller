@@ -223,6 +223,7 @@ function C:PerformanceReport()
         if s then lines[#lines+1]=string.format('%s: %d calls; average %.2f ms; max %.2f ms.',entry[2],s.calls,s.calls>0 and s.totalMS/s.calls or 0,s.maxMS)end
     end
     lines[#lines+1]=string.format('Display cache: %d hits / %d misses. Read-only scans: %d complete / %d cancelled.',p.cacheHits or 0,p.cacheMisses or 0,p.asyncCompleted or 0,p.asyncAborted or 0)
+    lines[#lines+1]=string.format('Same-action startup reads reused: %d. Later requests and result confirmations still read the complete build.',p.startupReadsReused or 0)
     lines[#lines+1]='Display refresh: '..(R.smoothReads==false and 'synchronous' or 'frame-spread')..'. Queue request/result validation: synchronous.'
     if p.slowestTree then lines[#lines+1]=string.format('Slowest native tree read: tab %s, %.2f ms.',tostring(p.slowestTree.tab),p.slowestTree.ms)end
     lines[#lines+1]=string.format('While rolling: %d frame gaps over 250 ms; largest %.2f s. Quick animation: %s.',p.slowFrames or 0,p.maxFrameGap or 0,R.db.fast and 'on' or 'off')

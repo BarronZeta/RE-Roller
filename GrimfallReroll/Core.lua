@@ -55,9 +55,18 @@ SLASH_GRIMFALLREROLL1='/grr'
 SLASH_GRIMFALLREROLL2='/rerolls'
 SLASH_GRIMFALLREROLL3='/rr'
 SLASH_GRIMFALLREROLL4='/reroller'
+local function commandHelp(unknown)
+    if not DEFAULT_CHAT_FRAME then return end
+    if unknown then DEFAULT_CHAT_FRAME:AddMessage('RE: Roller: unknown command /rr '..unknown..'. Window and queue unchanged.')end
+    DEFAULT_CHAT_FRAME:AddMessage('RE: Roller commands: /rr opens/closes the planner; /rr stop stops the queue; /rr icon resets the launcher.')
+    DEFAULT_CHAT_FRAME:AddMessage('/rr perf prints the performance report in chat; /rr perf reset clears timing counters while idle (it does not print a report).')
+    DEFAULT_CHAT_FRAME:AddMessage('/rr smooth on|off changes display-read mode; /rr refresh sync refreshes while idle; /rr diagnose, /rr history, /rr help.')
+end
 SlashCmdList.GRIMFALLREROLL=function(msg)
-    msg=string.lower(msg or '')
-    if msg=='stop' then R:Stop('Stopped by /rr stop.')
+    msg=string.lower(msg or ''):gsub('^%s+',''):gsub('%s+$',''):gsub('%s+',' ')
+    if msg=='' then R:ToggleUI()
+    elseif msg=='help' then commandHelp()
+    elseif msg=='stop' then R:Stop('Stopped by /rr stop.')
     elseif msg=='icon' then R:CreateLauncher(true)
     elseif msg=='diagnose' then R.Client:Diagnose()
     elseif msg=='performance' or msg=='perf' then R.Client:PerformanceReport()
@@ -68,5 +77,5 @@ SlashCmdList.GRIMFALLREROLL=function(msg)
         if not R.running and not R.pending then R:Refresh()else R:SetStatus('Finish or stop the current reroll before a manual refresh.')end
     elseif msg=='history' then
         for i=1,20 do local h=R.character and R.character.history[i]; if h then DEFAULT_CHAT_FRAME:AddMessage(date('%H:%M',h.at)..' '..h.kind..': '..h.oldName..' -> '..h.newName..' ('..h.spent..' scroll)') end end
-    else R:ToggleUI() end
+    else commandHelp(msg) end
 end

@@ -1,4 +1,4 @@
-GrimfallReroll = {version='0.9.3', selected={}, rows={}, byKey={}, queue={}, running=false, buildEpoch=0, status='Open /rr to load your build.'}
+GrimfallReroll = {version='0.9.4', selected={}, rows={}, byKey={}, queue={}, running=false, buildEpoch=0, status='Open /rr to load your build.'}
 local R=GrimfallReroll
 R.scrolls={ability=640,talent=639}
 function R:Changed() if self.Render then self:Render() end end
@@ -65,6 +65,10 @@ function R:ApplySnapshot(snapshot,reason)
     -- This complete snapshot covers only the events observed before it finished.
     -- Later events/notifications can set dirty again; pre-request reads remain fresh.
     if snapshot.epoch==(self.buildEpoch or 0)then self.dirty=false;self.uiDirty=false end
+    -- Clear only our transient scan labels; retain stop/error/result messages.
+    if self.status=='Reading build across frames...' or self.status=='Build changed during refresh; reading again.' then
+        self.status='Ready. Select entries in either column to plan a reroll.'
+    end
     self:Changed(); return snapshot
 end
 function R:CancelRefresh()
@@ -145,7 +149,9 @@ function R:Start(kindFilter)
     end end
     if #self.queue==0 then self:SetStatus('Select unlocked entries to reroll.'); return end
     self.total=#self.queue; self.done=0; self.running=true; self.paused=false; self.nextAt=0; self.animationWaitAt=nil
-    self.expected=snapshot; self:Step(true)
+    -- Pass this complete synchronous read directly to the first step. Never
+    -- store a reusable startup read across frames, animation waits or pauses.
+    self.expected=snapshot; self:Step(true,snapshot)
 end
 function R:Pause()
     if not self.running then return end
@@ -158,7 +164,7 @@ function R.SameBuild(a,b)
     for k in pairs(b.byKey) do if not a.byKey[k] then return false end end
     return true
 end
-function R:Step(clicked)
+function R:Step(clicked,startSnapshot)
     if self.pending then self:CheckPending(); return end
     if not self.running or self.paused or GetTime()<(self.nextAt or 0) then return end
     if self.manual and not clicked then return end
@@ -174,7 +180,20 @@ function R:Step(clicked)
         else self.paused=true; self:SetStatus('An existing roll animation is active. Wait for it, then Resume.') end
         return
     end
-    local before,err=self.Client:Snapshot()
+    local before,err
+    if clicked and self.done==0 and self.ready and startSnapshot
+        and startSnapshot==self.expected and startSnapshot==self.snapshot
+        and startSnapshot.epoch==(self.buildEpoch or 0)
+        and startSnapshot.spec==self.spec and self.Client:Spec()==startSnapshot.spec then
+        -- Start just read this build on the same Lua call stack, without a
+        -- yield. All live safety/lock/scroll checks below still run. If the
+        -- context changed, fall back to the original complete validation.
+        before=startSnapshot
+        self.performance=self.performance or {}
+        self.performance.startupReadsReused=(self.performance.startupReadsReused or 0)+1
+    else
+        before,err=self.Client:Snapshot()
+    end
     if not before or not self.SameBuild(self.expected,before) then self:Stop(err or 'Build changed outside this queue. Refresh and select again.'); return end
     local target=#self.queue>0 and table.remove(self.queue,1)
     if not target then self:Stop('Finished: '..(self.done or 0)..' confirmed rerolls.'); return end

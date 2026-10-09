@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.9.4 - 2026-10-09
+
+- Remove the immediate duplicate full build read at queue startup. Only the
+  complete synchronous read made on that same call stack can be reused for the
+  first request, while its build epoch, active spec and current snapshot still
+  match. Changed context falls back to a fresh full validation. Pauses and
+  animation waits discard the shortcut; later requests and all confirmations
+  still perform their own full synchronous reads.
+- Preserve live combat/death, per-spec lock, ownership, scroll-budget and
+  exact-result checks. No background or earlier-frame snapshot authorizes a roll.
+- Clear the transient "Reading build across frames..." label after successful
+  same-spec completion, including manual synchronous fallback. Unrelated stop,
+  error and confirmed-result messages are not replaced with "Ready".
+- Unknown slash commands now print help without toggling the window or stopping
+  a queue. Add `/rr help`; accept command capitalization and extra whitespace.
+- Add a same-action startup reuse counter to `/rr perf`. Reset clears timing
+  counters only; `/rr perf` prints the report in chat.
+- All 158 mocked Lua 5.1 regressions pass. A four-roll queue requires eight
+  full reads instead of nine, excluding a separate display refresh. A synthetic
+  260 ms learned-ID cost is paid once instead of twice at immediate startup.
+  These are offline work-count checks, not measured in-game FPS gains. The
+  underlying slow native ability-list call can still cause individual hitches.
+- Artwork, fonts, native animation behavior, saved schema, settings, locks and
+  history are unchanged. Version is unsuffixed for ordinary release packaging.
+- The maintainer reports successful use of 0.9.4 in Grimfall; the supplied
+  session report confirms one startup read reused. Native learned-ability reads
+  still average about 270 ms on that client, with six rolling frame gaps over
+  250 ms (largest 0.33 s). This is not a controlled before/after FPS benchmark.
+  Another player's roughly ten-second selection delay on 0.9.3 remains
+  unresolved; this successful 0.9.4 session does not establish a fix for it.
+
 ## 0.9.3 - 2026-10-09
 
 Regular release of the validated 0.9.3-rc1 performance update, published at the
