@@ -26,6 +26,7 @@ local function font(name,size,r,g,b,flags)
 end
 font('Title',30,0.96,0.83,0.57); font('Heading',20,0.96,0.83,0.57)
 font('HistoryHeading',17,0.96,0.92,0.81)
+font('HistoryBody',13,0.91,0.90,0.87)
 font('Body',14,0.91,0.90,0.87); font('Small',12,0.78,0.78,0.76)
 font('Muted',12,0.73,0.76,0.79); font('Button',14,0.96,0.85,0.63)
 font('ButtonHighlight',14,1,1,1); font('ButtonDisabled',14,0.48,0.48,0.48)
@@ -42,7 +43,7 @@ local function button(parent,text,width,fn)
     b.caption=label(b,'Button'); b.caption:SetPoint('CENTER',0,0); b.caption:SetJustifyH('CENTER'); b:SetFontString(b.caption)
     b:SetNormalFontObject(fonts.Button); b:SetHighlightFontObject(fonts.ButtonHighlight); b:SetDisabledFontObject(fonts.ButtonDisabled)
     b:SetPushedTextOffset(1,-1)
-    local glow=fill(b,colors.gold,0.12,'HIGHLIGHT'); glow:SetPoint('TOPLEFT',3,-3); glow:SetPoint('BOTTOMRIGHT',-3,3); b:SetHighlightTexture(glow)
+    local glow=fill(b,colors.gold,0.12,'HIGHLIGHT'); glow:SetPoint('TOPLEFT',3,-3); glow:SetPoint('BOTTOMRIGHT',-3,3); b:SetHighlightTexture(glow);b.glow=glow
     R.uiButtons=R.uiButtons or {}; table.insert(R.uiButtons,b)
     b:SetText(text); b:SetScript('OnClick',fn); return b
 end
@@ -97,6 +98,22 @@ function R:ToggleHideLocked(kind)
     if p then p.scroll:SetVerticalScroll(0) end
     GameTooltip:Hide()
     self:Render()
+end
+function R:ApplySkin()
+    local w=self.window;if not w then return end
+    local mode=self.Skin.Mode();if w.appearanceMode==mode then return end
+    local clean=mode=='clean'
+    self.Presentation:SetFont(fonts.Title,clean and 24 or 30)
+    fonts.Title:SetTextColor(clean and 0.90 or 0.96,clean and 0.94 or 0.83,clean and 0.98 or 0.57)
+    fonts.Button:SetTextColor(clean and 0.86 or 0.96,clean and 0.92 or 0.85,clean and 0.98 or 0.63)
+    self.Skin.SetAppearance(w);w.appearanceMode=mode
+    w.skinToggle:SetText(clean and 'Skin: Clean' or 'Skin: Titan')
+    self:LayoutHistory()
+    for _,p in pairs(w.historyDrawers)do self:ScrollHistory(p,p.scroll:GetVerticalScroll() or 0)end
+end
+function R:SetSkin(mode)
+    if not self.db or (mode~='titan' and mode~='clean')then return false end
+    self.db.skin=mode;self:ApplySkin();return true
 end
 function R:CreateUI()
     if self.window then return end
@@ -187,50 +204,34 @@ function R:CreateUI()
         p.start=button(p.footer,kind=='ability' and 'Reroll Abilities' or 'Reroll Talents',p.controlWidth,function() R:Start(kind) end); p.start:SetPoint('BOTTOMRIGHT',-8,8)
         p.start.accent=colors.gold; R.Skin.Button(p.start,true); p.start:SetHeight(32)
     end
-    w.status=label(w,'Small'); w.status:SetPoint('BOTTOMLEFT',18,108); w.status:SetPoint('BOTTOMRIGHT',-18,108); w.status:SetHeight(16); w.status:SetWordWrap(true)
-    w.historyPanel=CreateFrame('Frame',nil,w); w.historyPanel:SetPoint('BOTTOMLEFT',6,6); w.historyPanel:SetPoint('BOTTOMRIGHT',-6,6); w.historyPanel:SetHeight(100); panel(w.historyPanel,16)
-    w.historyTitle=label(w.historyPanel,'Body'); w.historyTitle:SetPoint('TOPLEFT',12,-8); w.historyTitle:SetHeight(20); w.historyTitle:SetTextColor(unpack(colors.gold)); w.historyTitle:SetText('Recent Transformations')
-    w.announcementHint=label(w.historyPanel,'Muted'); w.announcementHint:SetPoint('TOPRIGHT',-12,-8); w.announcementHint:SetHeight(20); w.announcementHint:SetText('Latest 3  |  Full history on the sides'); w.announcementHint:Hide()
-    w.announcementScroll=CreateFrame('ScrollFrame','RERollerAnnouncementScroll',w.historyPanel,'UIPanelScrollFrameTemplate')
-    w.announcementScroll:SetPoint('TOPLEFT',12,-32); w.announcementScroll:SetHeight(58); w.announcementScroll:EnableMouseWheel(true)
-    w.announcementCanvas=CreateFrame('Frame',nil,w.announcementScroll); w.announcementCanvas:SetSize(1,1); w.announcementScroll:SetScrollChild(w.announcementCanvas)
-    local function scrollAnnouncements(delta)
-        local maximum=math.max(0,w.announcementCanvas:GetHeight()-w.announcementScroll:GetHeight())
-        w.announcementScroll:SetVerticalScroll(math.max(0,math.min(maximum,(w.announcementScroll:GetVerticalScroll() or 0)-delta*28)))
-    end
-    w.announcementScroll:SetScript('OnMouseWheel',function(_,delta) scrollAnnouncements(delta) end)
-    w.historyRows={}
-    for i=1,3 do
-        local row=CreateFrame('Frame',nil,w.announcementCanvas); w.historyRows[i]=row
-        row:EnableMouse(true); row:EnableMouseWheel(true); row:SetScript('OnMouseWheel',function(_,delta) scrollAnnouncements(delta) end)
-        row.text=label(row,'Body'); row.text:SetPoint('TOPLEFT',8,-5); row.text:SetWordWrap(true); if row.text.SetNonSpaceWrap then row.text:SetNonSpaceWrap(true) end; row.text:SetJustifyV('TOP'); row.text:SetSpacing(2)
-        row.shade=fill(row,{1,1,1},i%2==1 and 0.025 or 0); row.shade:SetAllPoints()
-        row.stripe=fill(row,colors.gold,0.8); row.stripe:SetPoint('TOPLEFT',0,-2); row.stripe:SetPoint('BOTTOMLEFT',0,2); row.stripe:SetWidth(2); row.stripe:Hide()
-        row.kind=label(row,'Muted'); row.kind:SetPoint('TOPRIGHT',-8,-5); row.kind:SetSize(64,20); row.kind:SetJustifyH('RIGHT')
-        row:SetScript('OnEnter',function(self)
-            if not self.record then return end
-            GameTooltip:SetOwner(self,'ANCHOR_TOP'); GameTooltip:SetText(self.record.oldName,1,0.82,0)
-            GameTooltip:AddLine('Replaced with '..self.record.newName,1,1,1,true); GameTooltip:Show()
-        end)
-        row:SetScript('OnLeave',function() GameTooltip:Hide() end)
-    end
-    w.footerBackground=fill(w,{0.025,0.031,0.038},1,'ARTWORK'); w.footerBackground:SetPoint('BOTTOMLEFT',3,3); w.footerBackground:SetPoint('BOTTOMRIGHT',-3,3); w.footerBackground:SetHeight(33); w.footerBackground:Hide()
-    w.fast=CreateFrame('CheckButton',nil,w,'UICheckButtonTemplate'); w.fast:SetSize(24,24); w.fast:SetPoint('BOTTOMRIGHT',-154,69)
+    w.status=label(w,'Small'); w.status:SetPoint('BOTTOMLEFT',18,66); w.status:SetPoint('BOTTOMRIGHT',-18,66); w.status:SetHeight(16); w.status:SetWordWrap(true)
+    w.historyPanel=CreateFrame('Frame',nil,w); w.historyPanel:SetPoint('BOTTOMLEFT',6,6); w.historyPanel:SetPoint('BOTTOMRIGHT',-6,6); w.historyPanel:SetHeight(56); panel(w.historyPanel,16)
+    w.fast=CreateFrame('CheckButton',nil,w.historyPanel,'UICheckButtonTemplate'); w.fast:SetSize(24,24); w.fast:SetPoint('LEFT',160,0)
     w.fastText=label(w.fast,'Small'); w.fastText:SetPoint('LEFT',w.fast,'RIGHT',2,0); w.fastText:SetHeight(24); w.fastText:SetText('Quick Animation')
     w.fast:SetScript('OnClick',function(self) R.db.fast=self:GetChecked() and true or false end)
-    w.clear=button(w,'Clear',64,function() R:Clear() end); w.clear:SetPoint('BOTTOMRIGHT',-16,18)
-    w.stop=button(w,'Stop',64,function() R:Stop('Stopped. Any sent request is still being checked.') end); w.stop:SetPoint('RIGHT',w.clear,'LEFT',-6,0)
-    w.pause=button(w,'Pause',76,function() R:Pause() end); w.pause:SetPoint('RIGHT',w.stop,'LEFT',-6,0)
+    w.skinToggle=button(w.historyPanel,'Skin: Titan',110,function()
+        R:SetSkin(R.Skin.Mode()=='clean' and 'titan' or 'clean')
+    end);w.skinToggle:SetPoint('LEFT',16,0);w.skinToggle:SetHeight(28)
+    w.skinToggle:SetScript('OnEnter',function(self)
+        GameTooltip:SetOwner(self,'ANCHOR_TOP');GameTooltip:ClearLines();GameTooltip:SetText('Appearance')
+        GameTooltip:AddLine('Switch between Titan artwork and a clean, plain interface. Saved for next login; no reload needed.',0.85,0.90,0.95,true)
+        GameTooltip:AddLine('Only the appearance changes. Your queue, selections, locks and history stay intact.',0.75,0.80,0.85,true);GameTooltip:Show()
+    end)
+    w.skinToggle:SetScript('OnLeave',function() GameTooltip:Hide()end)
+    w.clear=button(w.historyPanel,'Clear',64,function() R:Clear() end); w.clear:SetPoint('RIGHT',-16,0)
+    w.stop=button(w.historyPanel,'Stop',64,function() R:Stop('Stopped. Any sent request is still being checked.') end); w.stop:SetPoint('RIGHT',w.clear,'LEFT',-6,0)
+    w.pause=button(w.historyPanel,'Pause',76,function() R:Pause() end); w.pause:SetPoint('RIGHT',w.stop,'LEFT',-6,0)
     local grip=CreateFrame('Button',nil,w); grip:SetSize(16,16); grip:SetPoint('BOTTOMRIGHT',-7,7)
     grip:SetNormalTexture('Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up'); grip:SetHighlightTexture('Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight')
     grip:SetScript('OnMouseDown',function() w:StartSizing('BOTTOMRIGHT') end); grip:SetScript('OnMouseUp',function() save(w) end)
     self:CreateHistoryUI()
     self.Skin.Apply(w)
+    self:ApplySkin()
     local function layout()
         local half=(w:GetWidth()-24)/2
         local a,t=w.panels.ability,w.panels.talent
-        a:SetPoint('TOPLEFT',10,-56); a:SetPoint('BOTTOMLEFT',10,126); a:SetWidth(half)
-        t:SetPoint('TOPRIGHT',-10,-56); t:SetPoint('BOTTOMRIGHT',-10,126); t:SetWidth(half)
+        a:SetPoint('TOPLEFT',10,-76); a:SetPoint('BOTTOMLEFT',10,90); a:SetWidth(half)
+        t:SetPoint('TOPRIGHT',-10,-76); t:SetPoint('BOTTOMRIGHT',-10,90); t:SetWidth(half)
         for _,p in pairs(w.panels) do p.canvas:SetWidth(half-44) end
         R:LayoutHistory()
         R:Render()
@@ -252,8 +253,10 @@ function R:UpdateSpecDisplay()
 end
 function R:Render()
     local w=self.window; if not w or not w:IsShown() or self.rendering then return end
+    if self.batch then self:RenderBatchControls();return end
     local started=debugprofilestop and debugprofilestop() or 0
     self.rendering=true
+    self:ApplySkin()
     self:UpdateSpecDisplay()
     local totals=self:Totals()
     local locks=self.spec and self:Locks(self.spec) or {}
@@ -286,10 +289,7 @@ function R:Render()
                 if b.entry~=entry and GameTooltip:IsOwned(b) then GameTooltip:Hide() end
                 b.entry=entry; b:SetPoint('TOPLEFT',0,-(index-1)*54); b:SetWidth(p.canvas:GetWidth()); b:Show()
                 b.shade:SetVertexColor(1,1,1,index%2==0 and 0.035 or 0.015)
-                if not b.staticArtReady then
-                    R.Skin.Sprite(b.box,'Unchecked')
-                    R.Skin.Sprite(b.mark,kind=='ability' and 'CheckedGold' or 'CheckedViolet');b.mark:SetVertexColor(1,1,1,1);b.staticArtReady=true
-                end
+                R.Skin.StyleRow(b,kind)
                 if locked then b.box:Hide(); b.mark:Hide(); b.lock:Show()
                 else b.box:Show(); b.lock:Hide(); if self.selected[entry.key] then b.mark:Show() else b.mark:Hide() end end
                 local iconPath=entry.icon or icon(entry.spellID)
@@ -329,9 +329,7 @@ function R:Render()
         if self.ready and not self.running and not self.pending and not self.refreshJob and totals[kind]>0 and enough then p.start:Enable() else p.start:Disable() end
     end
     w.status:SetText(self.status or '')
-    self:RenderAnnouncements()
     self:RenderHistory()
-    styleScroll(w.announcementScroll)
     w.fast:SetChecked(self.db.fast)
     local busy=self.running or self.pending or self.refreshJob
     if busy then w.clear:Disable(); w.refresh:Disable(); w.fast:Disable() else w.clear:Enable(); w.refresh:Enable(); w.fast:Enable() end
@@ -344,12 +342,29 @@ function R:Render()
         b:SetBackdropColor(enabled and 0.085 or 0.08,enabled and 0.09 or 0.085,enabled and 0.095 or 0.10,1)
         for _,t in ipairs(b.buttonPieces or {}) do t:SetVertexColor(enabled and 1 or 0.45,enabled and 1 or 0.45,enabled and 1 or 0.45,1) end
         b:SetBackdropBorderColor(enabled and c[1]*0.75 or 0.24,enabled and c[2]*0.75 or 0.25,enabled and c[3]*0.75 or 0.28,1)
+        self.Skin.StyleButton(b)
     end
     self.rendering=false
     self:MeasureWork('render',started)
 end
 -- Read-only side drawers: the existing confirmed history remains authoritative.
-local historyRowHeight=142
+function R:RenderBatchControls()
+    local started=debugprofilestop and debugprofilestop()or 0
+    local w=self.window
+    self:ApplySkin();w.status:SetText(self.status or '')
+    for _,p in pairs(w.panels)do p.start:Disable()end
+    w.clear:Disable();w.refresh:Disable();w.fast:Disable();w.fast:SetChecked(self.db.fast)
+    if self.running then w.pause:Enable()else w.pause:Disable()end
+    w.stop:Enable();w.pause:SetText(self.paused and 'Resume' or 'Pause')
+    for _,b in ipairs(self.uiButtons or {})do
+        local enabled=b:IsEnabled()
+        b:SetBackdropColor(enabled and 0.085 or 0.08,enabled and 0.09 or 0.085,enabled and 0.095 or 0.10,1)
+        for _,t in ipairs(b.buttonPieces or {})do t:SetVertexColor(enabled and 1 or 0.45,enabled and 1 or 0.45,enabled and 1 or 0.45,1)end
+        self.Skin.StyleButton(b)
+    end
+    self:MeasureWork('batch_render',started)
+end
+local historyRowHeight=110
 local historyWidth=R.Skin.historyWidth
 function R:ToggleHistory(kind)
     if kind~='ability' and kind~='talent' then return end
@@ -370,16 +385,17 @@ function R:LayoutHistory()
     local w=self.window; if not w or not w.historyDrawers or self.fittingHistory then return end
     self.fittingHistory=true
     local prefs=self.db.historyPanels or {}
+    local clean=self.Skin.Mode()=='clean'
     for _,kind in ipairs({'ability','talent'}) do
         local p=w.historyDrawers[kind]; local opened=prefs[kind]
-        p:SetHeight(math.max(300,w:GetHeight()-98)); p.scroll:SetHeight(p:GetHeight()-96)
+        p:SetHeight(math.max(300,w:GetHeight()-(clean and 28 or 98))); p.scroll:SetHeight(p:GetHeight()-96)
         if opened then p:Show() else p:Hide() end
         w.panels[kind].historyToggle:SetChecked(opened and true or false)
     end
     local scale,x,y=self.HistoryFit(w:GetWidth(),w:GetHeight(),UIParent:GetWidth(),UIParent:GetHeight(),
-        (prefs.ability and historyWidth+self.Skin.gap or 0)+self.Skin.outset,
-        (prefs.talent and historyWidth+self.Skin.gap or 0)+self.Skin.outset,
-        self.db.x,self.db.y,self.Skin.top,self.Skin.bottom)
+        (prefs.ability and historyWidth+self.Skin.gap or 0)+(clean and 0 or self.Skin.outset),
+        (prefs.talent and historyWidth+self.Skin.gap or 0)+(clean and 0 or self.Skin.outset),
+        self.db.x,self.db.y,clean and 0 or self.Skin.top,clean and 0 or self.Skin.bottom)
     self.Skin.Layout(w,prefs)
     w:SetScale(scale); w:ClearAllPoints(); w:SetPoint('CENTER',UIParent,'CENTER',x/scale,y/scale)
     self.fittingHistory=false
@@ -405,7 +421,7 @@ function R:CreateHistoryUI()
         p.canvas=CreateFrame('Frame',nil,p.scroll); p.canvas:SetSize(historyWidth-48,1); p.scroll:SetScrollChild(p.canvas)
         p.scroll:SetScript('OnMouseWheel',function(self,delta) R:ScrollHistory(p,(self:GetVerticalScroll() or 0)-delta*historyRowHeight) end)
         p.empty=label(p.scroll,'Small'); p.empty:SetPoint('TOPLEFT',8,-12); p.empty:SetWidth(historyWidth-66); p.empty:SetHeight(54); p.empty:SetWordWrap(true); p.empty:SetText('No confirmed '..(kind=='ability' and 'ability' or 'talent')..' rerolls saved yet.')
-        p.footer=label(p,'Muted'); p.footer:SetPoint('BOTTOMLEFT',12,12); p.footer:SetHeight(18); p.footer:SetText('Last 100 rolls total'); p.footer:Hide()
+        p.footer=label(p,'Muted'); p.footer:SetPoint('BOTTOMLEFT',12,12); p.footer:SetHeight(18); p.footer:SetText('Newest 20 rolls per history'); p.footer:Hide()
         p.newest=button(p,'Newest',62,function() R:ScrollHistory(p,0) end); p.newest:SetPoint('TOPRIGHT',-14,-41);p.newest:SetHeight(26)
         p:Hide()
     end
@@ -433,7 +449,7 @@ end
 function R:RenderHistory()
     local w=self.window; if not w.historyDrawers then return end
     local history=self.character.history or {}
-    -- Records are immutable and capped at 100. Status/bag/selection changes
+    -- Records are immutable and capped at 20 per kind. Status/bag/selection changes
     -- must not reset hundreds of textures and text regions in the drawers.
     if w.renderedHistory==history and w.renderedHistoryCount==#history and w.renderedHistoryFirst==history[1] and w.renderedHistoryLast==history[#history] then
         for _,p in pairs(w.historyDrawers) do self:ScrollHistory(p,p.scroll:GetVerticalScroll() or 0) end
@@ -445,11 +461,11 @@ function R:RenderHistory()
         local offset=p.scroll:GetVerticalScroll() or 0
         local oldTop=offset>0 and p.records[math.floor(offset/historyRowHeight)+1]
         local records={}
-        for _,h in ipairs(self.character.history or {}) do if h.kind==kind then records[#records+1]=h end end
+        for _,h in ipairs(history) do if h.kind==kind and #records<self.historyLimit then records[#records+1]=h end end
         -- Preserve the visible record while reviewing older rolls and new results arrive.
         if oldTop then for i,h in ipairs(records) do if h==oldTop then offset=(i-1)*historyRowHeight+offset%historyRowHeight; break end end end
         p.records=records
-        p.count:SetText(#records..' Rerolls Saved')
+        p.count:SetText(#records..' / '..self.historyLimit..' Rerolls Saved')
         for i,h in ipairs(records) do
             local row=p.rows[i]
             if not row then
@@ -458,20 +474,20 @@ function R:RenderHistory()
                 row.when=centered(label(row,'Muted')); row.when:SetPoint('TOPLEFT',4,-3);row.when:SetPoint('TOPRIGHT',-4,-3); row.when:SetHeight(18)
                 for _,which in ipairs({'old','new'}) do
                     local side=which
-                    local hit=CreateFrame('Frame',nil,row);row[side..'Hit']=hit;hit:SetPoint('TOPLEFT',4,side=='old' and -26 or -84);hit:SetSize(historyWidth-56,48);hit:EnableMouse(true);hit:EnableMouseWheel(true)
+                    local hit=CreateFrame('Frame',nil,row);row[side..'Hit']=hit;hit:SetPoint('TOPLEFT',4,side=='old' and -22 or -64);hit:SetSize(historyWidth-56,40);hit:EnableMouse(true);hit:EnableMouseWheel(true)
                     hit:SetScript('OnEnter',function(self) R:ShowHistorySpellTooltip(self,row.record,side) end)
                     hit:SetScript('OnLeave',function() GameTooltip:Hide() end)
                     hit:SetScript('OnHide',function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
                     hit:SetScript('OnMouseWheel',function(_,delta) GameTooltip:Hide();R:ScrollHistory(p,(p.scroll:GetVerticalScroll() or 0)-delta*historyRowHeight) end)
                 end
-                row.oldBorder=CreateFrame('Frame',nil,row.oldHit); row.oldBorder:SetPoint('LEFT',0,0); row.oldBorder:SetSize(44,44); row.oldBorder:SetBackdrop(inset); row.oldBorder:SetBackdropBorderColor(unpack(colors.gold))
-                row.oldIcon=row.oldBorder:CreateTexture(nil,'ARTWORK'); row.oldIcon:SetSize(38,38); row.oldIcon:SetPoint('CENTER',0,0)
-                row.oldName=label(row.oldHit,'Body'); row.oldName:SetPoint('TOPLEFT',53,-17); row.oldName:SetWidth(historyWidth-109); row.oldName:SetHeight(30); row.oldName:SetWordWrap(true)
-                row.newBorder=CreateFrame('Frame',nil,row.newHit); row.newBorder:SetPoint('LEFT',0,0); row.newBorder:SetSize(44,44); row.newBorder:SetBackdrop(inset); row.newBorder:SetBackdropBorderColor(unpack(colors.gold))
-                row.newIcon=row.newBorder:CreateTexture(nil,'ARTWORK'); row.newIcon:SetSize(38,38); row.newIcon:SetPoint('CENTER',0,0)
-                row.newName=label(row.newHit,'Body'); row.newName:SetPoint('TOPLEFT',53,-17); row.newName:SetWidth(historyWidth-109); row.newName:SetHeight(30); row.newName:SetWordWrap(true); row.newName:SetTextColor(0.94,0.93,0.87)
-                row.from=label(row.oldHit,'Small'); row.from:SetPoint('TOPLEFT',53,-1);row.from:SetHeight(16); row.from:SetText('From:')
-                row.to=label(row.newHit,'Small'); row.to:SetPoint('TOPLEFT',53,-1);row.to:SetHeight(16); row.to:SetText('To:')
+                row.oldBorder=CreateFrame('Frame',nil,row.oldHit); row.oldBorder:SetPoint('LEFT',0,0); row.oldBorder:SetSize(34,34); row.oldBorder:SetBackdrop(inset); row.oldBorder:SetBackdropBorderColor(unpack(colors.gold))
+                row.oldIcon=row.oldBorder:CreateTexture(nil,'ARTWORK'); row.oldIcon:SetSize(28,28); row.oldIcon:SetPoint('CENTER',0,0)
+                row.oldName=label(row.oldHit,'HistoryBody'); row.oldName:SetPoint('TOPLEFT',43,-12); row.oldName:SetWidth(historyWidth-99); row.oldName:SetHeight(28); row.oldName:SetWordWrap(true)
+                row.newBorder=CreateFrame('Frame',nil,row.newHit); row.newBorder:SetPoint('LEFT',0,0); row.newBorder:SetSize(34,34); row.newBorder:SetBackdrop(inset); row.newBorder:SetBackdropBorderColor(unpack(colors.gold))
+                row.newIcon=row.newBorder:CreateTexture(nil,'ARTWORK'); row.newIcon:SetSize(28,28); row.newIcon:SetPoint('CENTER',0,0)
+                row.newName=label(row.newHit,'HistoryBody'); row.newName:SetPoint('TOPLEFT',43,-12); row.newName:SetWidth(historyWidth-99); row.newName:SetHeight(28); row.newName:SetWordWrap(true); row.newName:SetTextColor(0.94,0.93,0.87)
+                row.from=label(row.oldHit,'Small'); row.from:SetPoint('TOPLEFT',43,0);row.from:SetHeight(12); row.from:SetText('From:')
+                row.to=label(row.newHit,'Small'); row.to:SetPoint('TOPLEFT',43,0);row.to:SetHeight(12); row.to:SetText('To:')
                 row.rule=fill(row,colors.gold,0.22); row.rule:SetHeight(1); row.rule:SetPoint('BOTTOMLEFT',6,2); row.rule:SetPoint('BOTTOMRIGHT',-6,2)
                 row:SetScript('OnMouseWheel',function(_,delta) R:ScrollHistory(p,(p.scroll:GetVerticalScroll() or 0)-delta*historyRowHeight) end)
                 row:SetScript('OnEnter',function(self)
@@ -486,6 +502,7 @@ function R:RenderHistory()
                 row:SetScript('OnLeave',function() GameTooltip:Hide() end)
             end
             if row.record~=h and (GameTooltip:IsOwned(row.oldHit) or GameTooltip:IsOwned(row.newHit)) then GameTooltip:Hide() end
+            self.Skin.StyleHistoryRow(row)
             row.record=h; row:SetPoint('TOPLEFT',0,-(i-1)*historyRowHeight)
             row.when:SetText(h.at and date('%Y-%m-%d %H:%M',h.at) or 'Saved result')
             row.oldIcon:SetTexture(h.oldID and icon(h.oldID) or 'Interface\\Icons\\INV_Misc_QuestionMark')
@@ -498,35 +515,8 @@ function R:RenderHistory()
     end
     w.renderedHistory=history; w.renderedHistoryCount=#history; w.renderedHistoryFirst=history[1]; w.renderedHistoryLast=history[#history]
 end
-function R:RenderAnnouncements()
-    local w=self.window; if not w or not w.announcementScroll then return end
-    local history=self.character and self.character.history or {}
-    local width=math.max(200,w:GetWidth()-280)
-    w.announcementScroll:SetWidth(width); w.announcementCanvas:SetWidth(width)
-    local height=0
-    local cardWidth=(width-18)/3
-    for i,row in ipairs(w.historyRows) do
-        local h=history[i]; row.record=h
-        row.text:SetWidth(cardWidth-16); row.text:SetHeight(0)
-        row.text:SetText(h and ((h.oldID and textureTag(h.oldID,16) or '')..'|cff999da3'..(h.oldName or 'Unknown')..'|r  ->  '..(h.newID and textureTag(h.newID,16) or '')..(h.newName or 'Unknown')) or (i==1 and 'Your confirmed rerolls will appear here.' or ''))
-        row.kind:SetText(h and (h.kind=='talent' and 'Talent' or 'Ability') or ''); row.kind:Hide()
-        if h then row.kind:SetTextColor(unpack(colors[h.kind] or colors.gold)) end
-        if h or i==1 then
-            local textHeight=math.max(18,row.text:GetStringHeight() or 18)
-            row.text:SetHeight(textHeight); row:SetSize(cardWidth,textHeight+10)
-            row:ClearAllPoints(); row:SetPoint('TOPLEFT',(i-1)*(cardWidth+9),0); row:Show()
-            row.shade:SetVertexColor(1,1,1,i%2==1 and 0.025 or 0); row.stripe:Hide()
-            height=math.max(height,textHeight+10)
-        else row:Hide(); row.stripe:Hide() end
-    end
-    w.announcementCanvas:SetHeight(math.max(1,height)); w.announcementScroll:UpdateScrollChildRect()
-    local offset=w.announcementScroll:GetVerticalScroll() or 0
-    if w.lastAnnouncement~=history[1] then offset=0; w.lastAnnouncement=history[1] end
-    local maximum=math.max(0,height-w.announcementScroll:GetHeight())
-    w.announcementScroll:SetVerticalScroll(math.max(0,math.min(maximum,offset)))
-end
--- Chat is the only transient result notification. The static recent/history
--- panels are updated by the normal confirmation render, without overlay work.
+-- Chat and the side drawers are the only result displays. The bottom bar
+-- contains controls only; no duplicate announcement textures or text work.
 function R:Notify(record,deferRender)
     local text=textureTag(record.oldID)..record.oldName..'  ->  '..textureTag(record.newID)..record.newName
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage('|cffe0bd75RE: Roller by Vash:|r '..text..' | '..record.spent..' scroll used') end

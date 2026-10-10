@@ -2,7 +2,7 @@
 
 **Choose what changes. Protect what matters.**
 
-A side-by-side ability and talent reroll planner for **Grimfall's custom World of Warcraft 3.3.5a client**, framed in the gold-and-stone Titan Reliquary interface.
+A side-by-side ability and talent reroll planner for **Grimfall's custom World of Warcraft 3.3.5a client**, with a gold-and-stone **Titan** skin or a plain **Clean** interface.
 
 [**Download Addon Only — Ready to Install (0.9.4)**](https://github.com/BarronZeta/RE-Roller/releases/download/v0.9.4/RE-Roller-0.9.4.zip)
 
@@ -12,30 +12,42 @@ Unzip, then copy the **`GrimfallReroll`** folder into your game's **`Interface/A
 
 [All releases](https://github.com/BarronZeta/RE-Roller/releases) · [Installation](#installation) · [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose)
 
-The **0.9.4 update** removes a duplicate startup build read and fixes stale
-refresh status and unknown slash-command behavior. The maintainer reports
-successful in-game use, but slow native ability reads still cause hitches and
-another player's reported selection delay remains unresolved. Diagnostic
-instructions are in [PERFORMANCE-TEST.txt](GrimfallReroll/PERFORMANCE-TEST.txt).
+**What's new in 0.9.7:** batch initial/final build reads, Titan/Clean appearance
+selection, a compact controls-only footer, smaller history rows, and separate
+20-roll ability/talent histories. Newly verified replacements no longer inherit
+dormant current-spec locks. See the [release notes](docs/releases/0.9.7.md) and
+[performance test guide](GrimfallReroll/PERFORMANCE-TEST.txt).
 
 > **Compatibility:** Grimfall only. This addon relies on Grimfall's custom classless APIs; it is not a Retail, Classic, or generic WotLK addon. A release does not guarantee compatibility with every future client update.
 
-![RE: Roller by Vash running in Grimfall, with both history panels open and Hide Locked enabled](docs/images/ReRollPreview.png)
+## Screenshots
 
-*Live in-game capture from Grimfall, supplied by Vash. Both history panels are open and Hide Locked is enabled for abilities and talents. This screenshot shows the earlier Emblem typography; the current release uses WoW's built-in font.*
+Live in-game screenshots of **0.9.7**, supplied by Vash and published unchanged.
+Click any image to view it full size. Skin and history visibility are independent:
+either appearance supports both history panels, one panel, or neither.
+
+| | Titan skin | Clean appearance |
+| --- | --- | --- |
+| **History hidden** | [![Titan skin with history hidden](docs/images/reroller-0.9.7-titan-compact.png)](docs/images/reroller-0.9.7-titan-compact.png) | [![Clean appearance with history hidden](docs/images/reroller-0.9.7-clean-compact.png)](docs/images/reroller-0.9.7-clean-compact.png) |
+| **History shown** | [![Titan skin with ability and talent history shown](docs/images/reroller-0.9.7-titan-history.png)](docs/images/reroller-0.9.7-titan-history.png) | [![Clean appearance with ability and talent history shown](docs/images/reroller-0.9.7-clean-history.png)](docs/images/reroller-0.9.7-clean-history.png) |
+
+Use **Skin: Titan / Skin: Clean** in the bottom bar to change appearance. Use
+each column's **History** checkbox to show or hide its side panel. Screenshots
+are documentation only and are not included in the addon ZIP.
 
 ## What it does
 
 - Browse your learned **Abilities** and **Talents** side by side, with search and hover tooltips.
-- Select several entries and reroll them through a confirmed queue.
+- Select several entries and reroll them through a sequential batch. Lists refresh after final verification, not between rolls.
 - Use **separate reroll buttons and scroll budgets** for abilities and talents.
 - Right-click an entry to lock it against accidental selection. Locks are saved separately for each character and specialization slot.
 - Turn on **Hide Locked** independently in either column to focus on the entries you want to change.
 - Open scrollable **Ability History** and **Talent History** panels to review what rolled off and what replaced it. Hover either spell's icon or name for its tooltip.
 - See your current custom specialization's name and icon when Grimfall provides them.
-- Use **Quick Animation**, Pause/Resume, Stop, and a bounded Recent Transformations area.
+- Use **Quick Animation**, Pause/Resume, Stop and Clear in a compact controls bar.
 - Receive confirmed roll results in **chat**, with old/new spell names, icons and scroll cost, without a floating announcement overlay.
 - Move and resize the planner; drag its small launcher anywhere on screen.
+- Choose **Titan** artwork or a plain **Clean** appearance; your choice is saved.
 
 | Reroll type | Required item | Item ID |
 | --- | --- | --- |
@@ -55,7 +67,17 @@ The queue budgets one scroll per selected entry and checks the actual result bef
 
 ### Updating an existing installation
 
-With WoW closed, back up your existing `GrimfallReroll` addon folder, then replace that folder with the one from the release ZIP. **Do not delete your `WTF` folder or `GrimfallRerollDB` saved variables.** Those contain your settings, protection locks, and history.
+With WoW closed, back up your existing `GrimfallReroll` addon folder **and**
+`WTF/Account/<account>/SavedVariables/GrimfallReroll.lua` (plus `.lua.bak`, if
+present), then replace only the addon folder with the one from the release ZIP.
+If Windows stores your game settings under VirtualStore, back up the actual
+saved-variable files there too. **Do not delete your `WTF` folder or
+`GrimfallRerollDB` saved variables.** Those contain your settings, protection
+locks, and history. Keep backups local; do not upload account files to GitHub.
+
+**0.9.7 keeps the newest 20 ability rolls and 20 talent rolls per character.**
+Older entries are pruned when the addon loads. Make the backup first if you want
+to keep your full older history; the downloadable addon does not create it for you.
 
 The internal folder remains **`GrimfallReroll`** for compatibility. Do not rename it to `RE-Roller`.
 
@@ -83,9 +105,9 @@ Version 0.9.2 verifies the live spec before lock, unlock and selection clicks, r
 
 The **History** checkbox in each column opens its corresponding side panel. Scroll with the mouse wheel or scrollbar; **Newest** returns to the latest entry. Each confirmed record shows **From** and **To**, with separate spell tooltips.
 
-History retains the most recent **100 confirmed rerolls total per character**, across abilities, talents, and specializations. The footer shows the latest three transformations.
+History retains the newest **20 ability rolls and 20 talent rolls per character**, shared across that character's specs. Older saved entries are pruned at load; back up SavedVariables before upgrading if you need the old history. The footer contains only Skin, Quick Animation, Pause, Stop and Clear.
 
-Confirmed rerolls send one **chat notification** with both spell icons, old-to-new names and the scroll cost. There is no floating announcement above the planner: its frame, animation queue and fade updates have been removed. The Recent Transformations area and both history panels remain available, and closing the planner does not delete confirmed results.
+Confirmed rerolls send one **chat notification** with both spell icons, old-to-new names and the scroll cost. There is no floating announcement or duplicate Recent Transformations area. Both compact history panels remain available. Batch mode commits confirmed history and chat after final verification; stopping a batch still verifies any completed results.
 
 ### Commands
 
@@ -94,9 +116,13 @@ Confirmed rerolls send one **chat notification** with both spell icons, old-to-n
 | `/rr` | Open or close the planner |
 | `/rr help` | List commands without changing the window or queue |
 | `/rr stop` | Stop sending further reroll requests |
+| `/rr batch on` / `/rr batch off` (0.9.7) | Batch initial/final verification (default) / complete per-roll verification; change while idle |
 | `/rr icon` | Restore the launcher to its default position |
+| `/rr skin clean` / `/rr skin titan` (0.9.6) | Switch appearance instantly and save the choice |
+| `/rr skin` (0.9.6) | Print the current appearance choice without opening or closing the window |
 | `/rr diagnose` | Check required Grimfall APIs and show the current diagnostic status |
 | `/rr performance` or `/rr perf` | Print session build-scan and redraw timings, plus frame gaps observed while rolling |
+| `/rr pace` (0.9.5) | Print current queue status and the last five confirmed rolls' phase timings |
 | `/rr perf reset` | Reset timing counters while no scan/roll is outstanding |
 | `/rr smooth off` / `/rr smooth on` | Synchronous / frame-spread display refresh, for this session only |
 | `/rr refresh sync` | One full synchronous refresh while no reroll is outstanding |
@@ -108,40 +134,65 @@ From 0.9.4, unknown commands print help without closing the window or stopping
 the queue. Command case and extra spaces are accepted. The command is **perf**,
 not **pref**; reset only clears counters, while `/rr perf` prints in chat.
 
-### Startup and diagnostic fixes (0.9.4)
+### Batch reads and compact controls (0.9.7)
 
-Queue startup now uses one complete fresh synchronous read for the immediate
-first request instead of reading twice. Reuse is limited to that same call
-stack with unchanged build/spec context; background scans and earlier-frame
-snapshots are never used to authorize a roll. Waiting for an animation or
-pausing discards the shortcut. Later requests and all result confirmations
-retain their complete reads and live safety checks.
+A six-roll batch normally makes **two full build reads total**: one fresh
+startup read, then final verification after all six native result presentations.
+Lists stay fixed during the batch. Every request still requires its result
+event, exactly one matching scroll consumed, and the native presentation to
+finish before the next request. Replacements are not added to the queue.
 
-Successful same-spec refreshes clear the stuck "Reading build across frames..."
-label. `/rr perf` now counts same-action startup reads reused. All 158 mocked
-Lua 5.1 regressions pass. A four-roll queue requires eight validation reads
-instead of nine, excluding display refreshes. This removes one avoidable
-native ability-list call per immediate queue start; it does not make the
-remaining native calls faster or establish a measured FPS improvement.
+The trade-off is that **outside build changes are fully checked at the end**,
+not before every request. Avoid manual build changes and other reroll tools
+during a batch. Combat, death, spec changes, protected entries, blocked actions,
+unexpected scroll changes and ambiguous results stop further requests. A stale
+final build can require a bounded verification retry; no reroll is resent.
+Use `/rr batch off` if you prefer the original full per-roll checks.
 
-### Performance update (0.9.3)
+The header has more breathing room, the bottom is a controls-only bar, and
+history icons/rows are smaller. Newly confirmed replacement entries no longer
+inherit dormant current-spec locks; existing learned protections and other
+specs remain intact. Already-hidden entries need a one-time manual unlock.
 
-Window opening, Refresh and idle build updates spread read-only scans across
-frames, cache successful display-only spell metadata and reuse unchanged UI
-work. Partial snapshots cannot authorize a reroll. Live ownership, talent
-ranks, spec, locks and scrolls are still checked; request/result validation
-remains fully synchronous for safety.
+243 offline checks pass, including both six-roll paths, event-loop behavior,
+exact inventory deltas, final build validation, independent 20-entry limits,
+and the retained per-roll fallback. Offline work-count improvements are not
+measured live-game speed or FPS gains. Full native reads can still hitch at
+startup/finalization. The screenshots show the live interface, not a performance
+benchmark.
 
-Slices target 4 ms, but an individual native API cannot be interrupted. Slow
-native tree reads can still cause a hitch, particularly during request/result
-validation. The update adds detailed API/slice/work/wall timing so further
-changes can follow actual client evidence. It preserves artwork, fonts, native
-animation callbacks, settings, per-spec locks and history.
+### Appearance options (introduced in 0.9.6)
 
-To test without scroll use: open `/rr`, wait for the build read, run
-`/rr perf reset`, click **Refresh**, wait, then send `/rr perf` with a description
-of any hitch. `/rr smooth off` restores synchronous display refresh for the
-session. All 139 mocked Lua 5.1 tests pass, but real-client FPS is not measured.
+Click **Skin: Titan / Skin: Clean** beside Quick Animation, or use the commands
+above. Titan remains the default. Clean replaces the guardian, stone pillars,
+plinths, textured panel fills and decorative trim with plain dark panels and
+thin borders. Spell icons, locks, selections, both lists, scrollable history,
+and all queue controls remain available.
+
+The choice is saved account-wide and switches without a reload. Changing it
+does not scan the build, start/stop a queue, alter scroll use or clear saved
+data. Frame fitting uses the smaller Clean bounds and restores Titan margins
+when switched back. Artwork files remain available; there is no claimed FPS
+gain or change to the cost of native game APIs.
+
+### Pacing and diagnostics
+
+The included pacing changes reduce the minimum gap from 600 to 100 ms, with
+50 ms active readiness polling and next-frame event wakeups. The next request
+still waits for the preceding result, exact scroll delta, and native presentation.
+Actual spacing can be longer because of the client, server, or a manual pause.
+
+`/rr perf` reports build reads, batch acknowledgement, redraw work and observed
+frame gaps. `/rr pace` shows queue status and recent roll timings. Timings overlap
+and are not pure server latency. For your next intended queue, wait for the
+initial display read, run `/rr perf reset`, roll, then collect both reports.
+Do not spend scrolls just to produce diagnostics.
+
+Window opening, Refresh and idle build updates retain the frame-spread read-only
+display scans introduced in 0.9.3. An individual native API call cannot be split
+or interrupted. `/rr smooth off` restores synchronous display refresh for the
+session; it is separate from the `/rr batch` queue option. See the
+[changelog](CHANGELOG.md) for earlier fixes and version-specific test counts.
 
 ## Fonts and requirements
 
@@ -155,8 +206,8 @@ Quick Animation only shortens the presentation for this addon's pending reroll. 
 - **A locked entry disappeared:** turn off Hide Locked and clear the search box.
 - **The reroll button is unavailable:** check that you selected unlocked entries, have enough of that column's scrolls in your bags, are alive and out of combat, and have no pending result.
 - **The queue stops:** read the planner's status line, then use `/rr diagnose`. The addon stops on uncertain results, server errors, or changes to your build instead of blindly sending another request.
-- **Rolling stutters or freezes:** version 0.9.2 includes reduced repeated build scans and history redraws, and removes the floating notification and its animation work. After a rolling session, use `/rr performance` (or `/rr perf`) and include the report with your bug report. Frame gaps include the entire game and other addons; they do not identify the cause on their own. Offline tests verify the removed work, but an in-game FPS improvement has not yet been measured.
-- **The font differs from the preview:** the live screenshot shows the earlier Emblem font. The current release deliberately uses WoW's built-in font instead.
+- **Rolling stutters or freezes:** include `/rr perf` and `/rr pace` with your report, and say whether the hitch happened at startup, between rolls, or at the end. Frame gaps include the entire game and other addons; they do not identify the cause on their own. Batch mode removes intermediate full reads, but native startup/final reads may still hitch. No measured live FPS gain is claimed.
+- **New replacements are hidden:** 0.9.7 prevents dormant same-spec locks from being inherited by newly verified replacements. Already-hidden entries are not retroactively unlocked; turn off Hide Locked and explicitly unlock the intended entry once.
 
 [Report a bug](https://github.com/BarronZeta/RE-Roller/issues/new/choose) with your version, reproduction steps, and the exact error/status message. Screenshots help; crop private chat or account details. Do not upload your whole `WTF` folder or account files.
 

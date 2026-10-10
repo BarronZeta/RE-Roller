@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.9.7 - 2026-10-10
+
+- Add default batch initial/final build verification with a fixed original
+  selection and no full build reads or list redraws between rolls. Each request
+  waits for its result event, exact scroll delta and native presentation end.
+- Commit confirmed history only after final build reconciliation; Stop, errors,
+  blocked actions and late results cannot dispatch remaining requests. Outside
+  build changes are fully detected at final verification, not before each roll.
+  `/rr batch off` retains the original full per-roll validation path.
+- Add batch acknowledgement, final-read and controls-only render diagnostics.
+- Separate header/column borders and replace Recent Transformations with a
+  compact controls-only footer. Shrink history icons 38 -> 28 and rows 142 -> 110.
+- Retain newest 20 ability and 20 talent records independently per character.
+  This prunes older saved history at load; external backup is required to keep it.
+- A newly verified replacement no longer inherits a dormant current-spec lock.
+  Do not reset existing learned protections, other specs, or arbitrary old locks.
+- 243 offline checks; six ability or talent rolls normally use exactly two full
+  reads. No live speed/FPS claim and no protected-action bypass.
+
+## 0.9.6 - 2026-10-10
+
+- Add an instant saved Titan/Clean appearance toggle beside Quick Animation
+  and `/rr skin clean`, `/rr skin titan`, `/rr skin` commands. Titan remains
+  the default; invalid values fall back visually without resetting saved data.
+- Clean hides outer Titan ornaments, stone tiles, textured panels and button
+  trim, using flat dark surfaces, thin borders and native checkbox textures.
+- Fit the window using each skin's actual outer bounds; reclaim the clean
+  history drawer's unused plinth area without overwriting saved frame position,
+  dimensions, history visibility, searches, selections or protections.
+- Reuse decorative/clean texture pools. Appearance switching does not hide
+  the main window, send rerolls, scan builds or alter queue/presentation logic.
+- Retain all 186 prior regressions and add 16 appearance regressions, including
+  pending queues, exact two-roll confirmation, persistence, lazy row styling,
+  cold start, allocation reuse and viewport bounds. Total: 202 offline checks.
+- Native Client.lua and Presentation.lua, Titan assets and fonts are unchanged.
+  This is not a live gameplay certification or claim of measured FPS gains.
+
+## 0.9.5 - 2026-10-09
+
+- Reduce after-confirmation minimum spacing from 600 to 100 ms, with 50 ms
+  active readiness polling and coalesced next-frame wakeups from result, bag,
+  build and animation-hide events. Requests never run in native callbacks.
+- Keep one request outstanding, full pre-request/result reads, exact scroll
+  checks, native presentation waits and all combat/spec/lock/stop safeguards.
+- Complete the queue immediately on its last confirmed result; no extra
+  inter-roll delay holds selection disabled after the batch is done.
+- Duplicate result notifications keep the first event timestamp and cannot
+  reset the one-second stale-build validation retry deadline.
+- Add queue phase timings to `/rr perf` and a bounded read-only `/rr pace`
+  report. Retain at most 20 confirmed timing records in memory, showing five.
+  Clearly distinguish observed overlapping timings from pure server latency.
+- All 186 offline Lua 5.1 regressions pass, including 28 new pacing tests.
+  Controlled batch simulations compare scheduling with the same full-read,
+  request, confirmation and scroll counts. These are not in-game benchmarks.
+- Preserve settings, locks, history schema, artwork and native animation
+  durations/callbacks. Slow native calls can still hitch. The other player's
+  reported ten-second lockout remains unverified; no universal fix is claimed.
+
 ## 0.9.4 - 2026-10-09
 
 - Remove the immediate duplicate full build read at queue startup. Only the

@@ -63,6 +63,7 @@ try {
   [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-History.lua' -Raw))
   [void]$vm.DoString('RunHistoryTests()')
   foreach($name in @('Test-Skin.lua','Test-Polish.lua','Test-HideLocked.lua','Test-Notices.lua')){[void]$vm.DoString((Get-Content -LiteralPath (Join-Path 'tests' $name) -Raw))}
+  [void]$vm.DoString((Get-Content -LiteralPath (Join-Path $addon 'Batch.lua') -Raw))
   [void]$vm.DoString((Get-Content -LiteralPath (Join-Path $addon 'Core.lua') -Raw))
   [void]$vm.DoString('RunCoreTests()')
   [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Performance.lua' -Raw))
@@ -70,6 +71,10 @@ try {
   [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-SpecLocks.lua' -Raw))
   [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Optimization.lua' -Raw))
   [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Startup.lua' -Raw))
+  [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-QueuePacing.lua' -Raw))
+  [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Appearance.lua' -Raw))
+  [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Compact.lua' -Raw))
+  [void]$vm.DoString((Get-Content -LiteralPath 'tests/Test-Batch.lua' -Raw))
   $results=@($vm.Globals.Get('results').Table.Values)
   $results|ForEach-Object {$_.String}
   [void]$vm.DoString('FinishTests()')

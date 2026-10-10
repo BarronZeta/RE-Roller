@@ -50,8 +50,8 @@ test('nondeferred notification performs only the normal static-history render',f
  local render=R.Render; local draws=0
  R.Render=function(...) draws=draws+1; return render(...) end
  local ok,err=pcall(RealNotifyForTests,R,r); R.Render=render
- assert(ok,err); assert(draws==1 and R.window.historyRows[1].record==r)
- assert(not R.window.historyRows[1].stripe:IsShown()); noOverlay(R)
+ assert(ok,err); assert(draws==1 and R.window.historyDrawers.ability.rows[1].record==r)
+ assert(not R.window.historyRows); noOverlay(R)
 end)
 test('notification has no fade ticks or six-second expiration redraw',function()
  local R=reset(); RealNotifyForTests(R,record(1),true)
@@ -81,7 +81,7 @@ test('closing and reopening preserves static history without replaying chat',fun
  local messages=captureChat(function()
   RealNotifyForTests(R,r);R.window:Hide();R.window:Show();R:Render()
  end)
- assert(#messages==1 and #R.character.history==1 and R.window.historyRows[1].record==r and #calls==0);noOverlay(R)
+ assert(#messages==1 and #R.character.history==1 and R.window.historyDrawers.ability.rows[1].record==r and #calls==0);noOverlay(R)
 end)
 test('late hidden results still reach chat and history without reopening the planner',function()
  local R=reset();R.window:Hide();local r=record(1);R.character.history={r}
@@ -108,7 +108,10 @@ test('actual confirmations notify exactly once; starting or duplicate events can
   R:Result('ability',103);R:Step(false);assert(#messages==1)
   clock=1;R:Step(false);assert(#calls==2 and R.pending)
   replaceAbility(102,104);scrollCounts[640]=8;R:Result('ability',104);R:Step(false)
-  assert(#R.character.history==2 and #messages==2 and #calls==2)
+  -- Completion now announces immediately, without another delayed queue tick.
+  assert(#R.character.history==2 and #messages==3 and #calls==2)
+  assert(messages[3]:find('Finished: 2 confirmed rerolls.',1,true))
+  R:Result('ability',104);R:Step(false);assert(#messages==3)
  end)
  assert(messages[1]:find('Spell 101',1,true) and messages[2]:find('Spell 102',1,true));noOverlay(R)
 end)

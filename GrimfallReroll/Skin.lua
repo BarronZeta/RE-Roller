@@ -106,6 +106,15 @@ function S.Apply(w)
 end
 function S.Layout(w,prefs)
  local f=w.titanFrame;if not f then return end
+ if S.Mode()=='clean' then
+  f:Hide();f.opaque:Hide();w.guardian:Hide()
+  for _,t in ipairs(f.pieces)do t:Hide()end
+  for _,pool in ipairs({f.stone,f.rails[1],f.rails[2]})do for _,t in ipairs(pool)do t:Hide()end end
+  for _,t in pairs(w.plinths)do t:Hide()end
+  return
+ end
+ f:Show();f.opaque:Show();w.guardian:Show()
+ for _,t in ipairs(f.pieces)do t:Show()end
  local left=prefs.ability and S.historyWidth+S.gap or 0
  local right=prefs.talent and S.historyWidth+S.gap or 0
  local lx=left>0 and -left-56 or -112
@@ -128,4 +137,78 @@ function S.Layout(w,prefs)
   else t:SetPoint('BOTTOMRIGHT',w,'TOPLEFT',rx,-w:GetHeight()) end
   t:Show()
  end
+end
+
+-- Appearance only: no build reads, queue actions, or saved-data migration.
+function S.Mode()return R.db and R.db.skin=='clean' and 'clean' or 'titan'end
+local function show(region,value)if value then region:Show()else region:Hide()end end
+local function showAll(regions,value)for _,region in pairs(regions or {})do show(region,value)end end
+function S.Edges(parent,visible)
+ if visible and not parent.cleanEdges then
+  parent.cleanEdges={}
+  for _,side in ipairs({'TOP','BOTTOM','LEFT','RIGHT'})do
+   local t=parent:CreateTexture(nil,'OVERLAY');t:SetTexture('Interface\\Buttons\\WHITE8X8')
+   t:SetVertexColor(0.27,0.34,0.40,1)
+   if side=='TOP' or side=='BOTTOM'then
+    t:SetHeight(1);t:SetPoint(side..'LEFT',parent,side..'LEFT',0,0);t:SetPoint(side..'RIGHT',parent,side..'RIGHT',0,0)
+   else
+    t:SetWidth(1);t:SetPoint('TOP'..side,parent,'TOP'..side,0,0);t:SetPoint('BOTTOM'..side,parent,'BOTTOM'..side,0,0)
+   end
+   parent.cleanEdges[#parent.cleanEdges+1]=t
+  end
+ end
+ showAll(parent.cleanEdges,visible)
+end
+function S.StyleButton(b)
+ local mode=S.Mode();local clean=mode=='clean'
+ if b.skinMode~=mode then
+  showAll(b.buttonPieces,not clean);S.Edges(b,clean)
+  if b.glow then b.glow:SetVertexColor(clean and 0.35 or 0.88,clean and 0.75 or 0.74,clean and 1 or 0.46,0.12)end
+  b.skinMode=mode
+ end
+ if clean then
+  local enabled=b:IsEnabled();b:SetBackdropColor(enabled and 0.075 or 0.045,enabled and 0.10 or 0.055,enabled and 0.13 or 0.065,1)
+  for _,t in ipairs(b.cleanEdges)do t:SetVertexColor(enabled and 0.33 or 0.17,enabled and 0.46 or 0.21,enabled and 0.56 or 0.25,1)end
+ end
+end
+function S.StyleRow(b,kind)
+ local mode=S.Mode();if b.skinMode==mode then return end
+ if mode=='clean'then
+  b.box:SetTexture('Interface\\Buttons\\UI-CheckBox-Up');b.box:SetTexCoord(0,1,0,1)
+  b.mark:SetTexture('Interface\\Buttons\\UI-CheckBox-Check');b.mark:SetTexCoord(0,1,0,1)
+  b.mark:SetVertexColor(kind=='talent' and 0.74 or 0.45,0.82,1,1)
+  b.iconFrame:SetBackdropBorderColor(0.32,0.39,0.46,1)
+ else
+  S.Sprite(b.box,'Unchecked');S.Sprite(b.mark,kind=='ability' and 'CheckedGold' or 'CheckedViolet')
+  b.mark:SetVertexColor(1,1,1,1);b.iconFrame:SetBackdropBorderColor(0.88,0.74,0.46,1)
+ end
+ b.skinMode=mode;b.staticArtReady=true
+end
+function S.StyleHistoryRow(row)
+ local mode=S.Mode();if row.skinMode==mode then return end
+ local c=mode=='clean' and {0.32,0.39,0.46} or {0.88,0.74,0.46}
+ for _,side in ipairs({'old','new'})do row[side..'Border']:SetBackdropBorderColor(c[1],c[2],c[3],1)end
+ if row.rule then row.rule:SetVertexColor(c[1],c[2],c[3],0.22)end
+ row.skinMode=mode
+end
+function S.SetAppearance(w)
+ local clean=S.Mode()=='clean'
+ showAll(w.inlay,not clean);S.Edges(w,clean)
+ local panels={w.historyPanel,w.panels.ability,w.panels.talent,w.panels.ability.footer,w.panels.talent.footer,
+  w.historyDrawers.ability,w.historyDrawers.talent}
+ for _,p in ipairs(panels)do
+  showAll(p.inlay,not clean);show(p.surface,not clean);showAll(p.recess,not clean);S.Edges(p,clean)
+ end
+ show(w.emblemFrame,not clean)
+ w.title:ClearAllPoints();w.title:SetPoint('TOPLEFT',clean and 18 or 67,-7);w.title:SetPoint('TOPRIGHT',-347,-7)
+ local c=clean and {0.55,0.70,0.82} or {0.88,0.74,0.46}
+ w.headerLine:SetVertexColor(c[1],c[2],c[3],0.45)
+ for _,kind in ipairs({'ability','talent'})do
+  local p=w.panels[kind];p.scrollIconFrame:SetBackdropBorderColor(c[1],c[2],c[3],1)
+  p.budget:SetTextColor(c[1],c[2],c[3])
+  for _,b in ipairs(p.rows)do S.StyleRow(b,kind)end
+  local drawer=w.historyDrawers[kind];drawer.headerRule:SetVertexColor(c[1],c[2],c[3],0.25)
+  for _,row in ipairs(drawer.rows)do S.StyleHistoryRow(row)end
+ end
+ for _,b in ipairs(R.uiButtons or {})do S.StyleButton(b)end
 end

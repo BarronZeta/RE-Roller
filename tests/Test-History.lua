@@ -5,7 +5,7 @@ function RunHistoryTests()
    R.character.history[i]={oldID=101,newID=102,oldName='Old '..i,newName='New '..i,
     kind=i%2==0 and 'talent' or 'ability',at=time()-i,spec='specialization:1',spent=1}
   end
-  R:LayoutHistory(); R:Render()
+  R:TrimHistory(R.character); R:LayoutHistory(); R:Render()
  end
  test('history drawers independently open left and right, with saved choices and empty states',function()
   local R=reset(); R:LayoutHistory(); R:Render(); local w=R.window
@@ -22,7 +22,7 @@ function RunHistoryTests()
  end)
  test('all saved history separates by type in original newest-first order with icons and old/new names',function()
   local R=reset(); populate(R,100); local a,t=R.window.historyDrawers.ability,R.window.historyDrawers.talent
-  assert(#a.records==50 and #t.records==50 and #a.rows>=50 and #t.rows>=50)
+  assert(#a.records==20 and #t.records==20 and #a.rows==20 and #t.rows==20)
   for _,p in ipairs({a,t}) do
    for i,h in ipairs(p.records) do
     assert(h.kind==p.kind and p.rows[i].record==h)
@@ -30,14 +30,14 @@ function RunHistoryTests()
     assert(p.rows[i].oldIcon.texture and p.rows[i].newIcon.texture)
    end
   end
-  assert(a.records[1].oldName=='Old 1' and a.records[50].oldName=='Old 99' and t.records[1].oldName=='Old 2')
-  assert(#R.character.history==100 and #calls==0)
+  assert(a.records[1].oldName=='Old 1' and a.records[20].oldName=='Old 39' and t.records[1].oldName=='Old 2')
+  assert(#R.character.history==40 and #calls==0)
  end)
  test('mouse wheel scroll clamps independently and Newest returns only its drawer to the top',function()
   local R=reset(); populate(R,100); local a,t=R.window.historyDrawers.ability,R.window.historyDrawers.talent
   R:ScrollHistory(a,0); R:ScrollHistory(t,0)
   a.scroll.scripts.OnMouseWheel(a.scroll,-3)
-  assert(a.scroll:GetVerticalScroll()==426 and t.scroll:GetVerticalScroll()==0)
+  assert(a.scroll:GetVerticalScroll()==330 and t.scroll:GetVerticalScroll()==0)
   a.rows[1].scripts.OnMouseWheel(a.rows[1],-1000)
   assert(a.scroll:GetVerticalScroll()==a.canvas:GetHeight()-a.scroll:GetHeight())
   R:ScrollHistory(t,152); a.newest.scripts.OnClick()
@@ -46,11 +46,11 @@ function RunHistoryTests()
  end)
  test('new results preserve the older record being read; top view stays on newest',function()
   local R=reset(); populate(R,100); local a,t=R.window.historyDrawers.ability,R.window.historyDrawers.talent
-  R:ScrollHistory(a,284); R:ScrollHistory(t,0); local visible=a.records[3]
+  R:ScrollHistory(a,220); R:ScrollHistory(t,0); local visible=a.records[3]
   table.insert(R.character.history,1,{oldName='Latest old',newName='Latest new',kind='ability'})
-  table.remove(R.character.history); R:Render()
-  assert(a.records[math.floor(a.scroll:GetVerticalScroll()/142)+1]==visible and a.scroll:GetVerticalScroll()==426)
-  R:Render(); assert(a.scroll:GetVerticalScroll()==426)
+  R:TrimHistory(R.character); R:Render()
+  assert(a.records[math.floor(a.scroll:GetVerticalScroll()/110)+1]==visible and a.scroll:GetVerticalScroll()==330)
+  R:Render(); assert(a.scroll:GetVerticalScroll()==330)
   a.newest.scripts.OnClick(); assert(a.scroll:GetVerticalScroll()==0 and a.rows[1].newName:GetText()=='Latest new')
   assert(t.scroll:GetVerticalScroll()==0 and #calls==0)
  end)

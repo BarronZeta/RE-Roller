@@ -217,24 +217,62 @@ function C:PerformanceReport()
         {'render','render'},{'stage_abilities','ability stage'},{'stage_talents','talent stage'},{'stage_sort','sorting'},
         {'api_known_abilities','API learned abilities'},{'api_specializations','API talent specializations'},
         {'api_tab_map','API talent tab mapping'},{'api_talent_tree','API talent tree data'},
-        {'api_talent_classification','API talent classification'},{'api_spell_info','API spell metadata'}}
+        {'api_talent_classification','API talent classification'},{'api_spell_info','API spell metadata'},
+        {'queue_request_read','Queue pre-request read work'},{'queue_result_read','Queue result-read work'},
+        {'queue_event','Request to first result event'},{'queue_scroll','Request to observed result + scroll readiness'},
+        {'queue_confirm','Request to full confirmation'},{'queue_gap','Confirmed result to next request'},
+        {'queue_animation','Observed animation-blocked span'},{'batch_render','Batch controls-only render'},
+        {'batch_ack','Batch request to event/scroll/presentation acknowledgement'},
+        {'batch_gap','Batch acknowledgement to next request'},{'queue_batch_final_read','Batch final build-read work'}}
     for _,entry in ipairs(names)do
         local s=p[entry[1]]
         if s then lines[#lines+1]=string.format('%s: %d calls; average %.2f ms; max %.2f ms.',entry[2],s.calls,s.calls>0 and s.totalMS/s.calls or 0,s.maxMS)end
     end
     lines[#lines+1]=string.format('Display cache: %d hits / %d misses. Read-only scans: %d complete / %d cancelled.',p.cacheHits or 0,p.cacheMisses or 0,p.asyncCompleted or 0,p.asyncAborted or 0)
-    lines[#lines+1]=string.format('Same-action startup reads reused: %d. Later requests and result confirmations still read the complete build.',p.startupReadsReused or 0)
-    lines[#lines+1]='Display refresh: '..(R.smoothReads==false and 'synchronous' or 'frame-spread')..'. Queue request/result validation: synchronous.'
+    if R.BatchEnabled and R:BatchEnabled()then
+        lines[#lines+1]=string.format('Batch mode: %d batches started. One initial build read and final verification; no full reads or list refreshes between rolls.',p.batchStarts or 0)
+        lines[#lines+1]='Each request requires its result event, exact scroll delta and native presentation completion. Outside build changes are checked at the end.'
+    else
+        lines[#lines+1]=string.format('Same-action startup reads reused: %d. Later requests and result confirmations still read the complete build.',p.startupReadsReused or 0)
+    end
+    lines[#lines+1]='Display refresh: '..(R.smoothReads==false and 'synchronous' or 'frame-spread')..'. Full build reads remain synchronous during queue verification.'
+    lines[#lines+1]='Queue pacing: 100 ms minimum after confirmation; 50 ms readiness polling plus next-frame event wakeups. /rr pace shows recent rolls.'
     if p.slowestTree then lines[#lines+1]=string.format('Slowest native tree read: tab %s, %.2f ms.',tostring(p.slowestTree.tab),p.slowestTree.ms)end
     lines[#lines+1]=string.format('While rolling: %d frame gaps over 250 ms; largest %.2f s. Quick animation: %s.',p.slowFrames or 0,p.maxFrameGap or 0,R.db.fast and 'on' or 'off')
     lines[#lines+1]='Frame gaps include the game and other addons; they do not identify the cause by themselves.'
     lines[#lines+1]='Stages include their API calls; do not add them together. Fresh request/result checks remain synchronous; a native call cannot be interrupted.'
+    lines[#lines+1]='Queue timings overlap. Event/scroll times are observed client latency, not pure server time. Gaps include validation, scheduling, animations and any manual pause.'
     if not debugprofilestop then lines[#lines+1]='Client timing API unavailable; refresh is bounded by call/row counts only.'end
     if R.db then R.db.lastPerformanceReport=table.concat(lines,'\n')end
     if DEFAULT_CHAT_FRAME then for _,line in ipairs(lines)do DEFAULT_CHAT_FRAME:AddMessage(line)end end
 end
+function C:QueueReport()
+    local p=R.performance or {};local timings=p.rollTimings or {};local lines={}
+    lines[1]='RE: Roller '..R.version..' queue: '..(R.running and (R.paused and 'paused' or 'running') or 'idle')..'; '..(R.status or '')
+    if R.pending then
+        local pending=R.pending
+        lines[#lines+1]=string.format('Outstanding request: %.2f s; result event: %s; scroll readiness observed: %s. No overlapping request will be sent.',
+            math.max(0,GetTime()-(pending.requestAt or pending.at)),pending.result and 'yes' or 'no',pending.scrollMS and 'yes' or 'no')
+    end
+    lines[#lines+1]='Last '..math.min(5,#timings)..' confirmed rolls (up to 20 kept this session). All values below are milliseconds.'
+    local function value(n)return n and string.format('%.0f',n) or '-'end
+    for i=math.max(1,#timings-4),#timings do
+        local t=timings[i]
+        if t.batch then
+            lines[#lines+1]=string.format('%s: event %s; scroll ready %s; presentation/scroll acknowledged %s. Verified with the final batch read.',
+                t.kind,value(t.eventMS),value(t.scrollMS),value(t.ackMS))
+        else
+            lines[#lines+1]=string.format('%s: event %s; result + scroll ready %s; confirmed %s; pre/result read work %s/%s.',
+                t.kind,value(t.eventMS),value(t.scrollMS),value(t.confirmedMS),value(t.requestReadMS),value(t.resultReadMS))
+        end
+        lines[#lines+1]=string.format('Prior gap %s; configured minimum %s; observed animation block %s.',value(t.gapMS),value(t.minimumMS),value(t.animationMS))
+    end
+    lines[#lines+1]='Timings overlap; do not add them. Prior gap includes validation and any pause. Animation block is the observed span between checks, not native animation duration.'
+    if not debugprofilestop then lines[#lines+1]='Client CPU timing API unavailable; read-work values are unavailable (shown as 0).'end
+    if DEFAULT_CHAT_FRAME then for _,line in ipairs(lines)do DEFAULT_CHAT_FRAME:AddMessage(line)end end
+end
 function C:ResetPerformance()
-    if R.running or R.pending or R.refreshJob then R:SetStatus('Wait for the current scan/roll before resetting performance counters.');return end
+    if R.running or R.pending or R.refreshJob or R.batch then R:SetStatus('Wait for the current scan/roll before resetting performance counters.');return end
     R.performance={}
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage('RE: Roller: performance counters reset; build, locks, scrolls and history unchanged.')end
 end
@@ -248,7 +286,18 @@ function C:Request(target)
     return ClasslessUnlearnSpell(target.id)
 end
 function C:AnimationBusy()
+    self:WatchAnimation(RandomMode_RollFrame)
     return RandomMode_RollFrame and RandomMode_RollFrame:IsShown()
+end
+function C:WatchAnimation(frame)
+    if not frame or type(frame.HookScript)~='function' then return end
+    self.watchedAnimations=self.watchedAnimations or setmetatable({}, {__mode='k'})
+    if self.watchedAnimations[frame]then return end
+    self.watchedAnimations[frame]=true
+    frame:HookScript('OnHide',function()
+        if C.fastState and C.fastState.frame==frame then C:RestoreAnimation()end
+        R:WakeQueue()
+    end)
 end
 -- Fast presentation leaves all native OnPlay/OnFinished handlers intact, notably
 -- Alpha3.OnPlay -> FlushClasslessWildcardSpellRollResults. It never calls Flush itself.
@@ -262,6 +311,7 @@ function C:RestoreAnimation()
 end
 function C:PrepareAnimation()
     local f=RandomMode_RollFrame; local p=R.pending
+    self:WatchAnimation(f)
     -- Talents use the same spell-roll presentation. Preserve its result-flush callbacks too.
     if not f or not p or not R.db.fast then return end
     if self.fastState then return end
@@ -280,10 +330,10 @@ function C:PrepareAnimation()
         hooksecurefunc(scroll.Rotation1,'SetDuration',function(a,value)
             if C.fastState and not C.adjusting and value>0.05 then C.adjusting=true; a:SetDuration(0.05); C.adjusting=false end
         end)
-        f:HookScript('OnHide',function() C:RestoreAnimation() end)
     end
 end
 function C:HookAnimation()
+    self:WatchAnimation(RandomMode_RollFrame)
     if self.animationHooked or type(hooksecurefunc)~='function' or type(ClasslessRandomRoll_CreateFrame)~='function' then return end
     self.animationHooked=true
     hooksecurefunc('ClasslessRandomRoll_CreateFrame',function() C:PrepareAnimation() end)

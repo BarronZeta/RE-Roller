@@ -202,7 +202,7 @@ test('ability locked on one spec stays unlocked when rolled on a different spec'
     assert(R.done==1 and not R:Locks(R.spec)['A:101'] and R:Locks('specialization:0')['A:101'])
 end)
 
-test('existing Spell Power protections in both saved specs remain intact with no migration or cleanup',function()
+test('new confirmed replacement clears only its dormant current-spec protection',function()
     local R=prepare();local locks0=R:Locks('specialization:0');local locks3=R:Locks('specialization:3')
     locks0['T:1826']=true;locks3['T:1826']=true
     local db=R.db;local history=R.character.history
@@ -211,6 +211,6 @@ test('existing Spell Power protections in both saved specs remain intact with no
     R:Toggle('T:201');R:Start('talent')
     talents={[1826]={class=8,spell=35581,rank=2}};scrollCounts[639]=9
     R:Result('talent',35581);R:Step(false)
-    assert(R.done==1 and locks0['T:1826'] and locks3['T:1826'] and history==R.character.history)
+    assert(R.done==1 and locks0['T:1826'] and not locks3['T:1826'] and history==R.character.history)
     assert(db.schema==1)
 end)

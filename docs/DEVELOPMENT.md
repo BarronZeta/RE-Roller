@@ -5,7 +5,7 @@
 - `GrimfallReroll/`: installable addon, including art and licensed fallback fonts.
 - `tests/`: mocked game APIs and regression tests; no account data or client code.
 - `scripts/`: portable validation and ZIP packaging.
-- `docs/images/`: the live in-game screenshot used on the project page and older
+- `docs/images/`: four live 0.9.7 screenshots used on the project page and older
   offline layout previews, all excluded from the installable ZIP. See the
   [image provenance notes](images/README.md).
 - `dist/`: generated release ZIP, SHA-256 checksum, and per-file manifest (gitignored).
@@ -65,15 +65,33 @@ Lua 5.1 installation and runs the same validation/packaging entry point.
   non-destructive command parsing. Total: 158. No game requests are sent.
 - Every ZIP member has the correct `GrimfallReroll/` prefix and matches its
   per-file SHA-256 hash.
+- The 0.9.5 pacing suite adds 28 regressions (186 total): active timer/event
+  wakeups, spacing, delayed/duplicate results, missed inventory events,
+  presentation callbacks at both speeds, Stop/Pause, immediate final completion,
+  retained fresh validation and bounded read-only queue diagnostics.
+- The 0.9.6 appearance suite adds 16 regressions (202 total): persistence,
+  default/fallback, complete ornament removal/restoration, lazy rows, viewport
+  fitting, reused texture pools, unchanged pending/confirmed queues and no
+  build reads during appearance switches. Preview checks remain offline.
 
 Each version has a frozen baseline fixture. For a runtime change, review the
 specific diff before adding its new fixture, version, tests, and release notes.
 Do not blindly rewrite expected hashes to make a failing test pass. Update
 public download links only when the new release is actually published.
 
+The 0.9.7 suite has 243 checks. Existing safety suites explicitly use per-roll
+mode; Test-Batch.lua covers the new production default separately (32 checks).
+Test-Compact.lua covers 20-per-kind retention and dormant replacement locks.
+Obsolete announcement tests now verify the controls-only footer and side panels.
+Batch mode deliberately defers the full outside-build comparison to the end.
+Do not describe event/scroll acknowledgement as a fully verified build result.
+Final reconciliation must succeed before committing confirmed history or locks.
+
 Use `-OutputDirectory dist/0.9.2` when building beside an existing release
 so its manifest and checksums are preserved along with its ZIP.
-The current release uses `-OutputDirectory dist/0.9.4`.
+The 0.9.7 release uses `-OutputDirectory dist/0.9.7`.
+The intermediate local 0.9.5 and 0.9.6 packages were not separate public releases;
+their pacing and appearance changes are included in 0.9.7.
 Keep existing release artifacts unchanged.
 
 The repository license and `GrimfallReroll/LICENSE.txt` must stay identical.

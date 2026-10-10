@@ -28,22 +28,26 @@ frame:SetScript('OnEvent',function(self,event,...)
         local message=select(2,...) or arg or 'Server error'; R:Stop('Stopped: '..tostring(message)..'. No retry sent.')
     elseif (event=='ADDON_ACTION_BLOCKED' or event=='ADDON_ACTION_FORBIDDEN') and arg=='GrimfallReroll' then
         R:Stop('Client blocked the reroll action. No automatic retry; use the native Unlearn menu for now.')
-    elseif event=='BAG_UPDATE' then R.uiDirty=true
+    elseif event=='BAG_UPDATE' then R.uiDirty=true;R:WakeQueue()
     elseif event=='SPELLS_CHANGED' or event=='PLAYER_TALENT_UPDATE' or event=='PLAYER_ENTERING_WORLD' then R.dirty=true end
 end)
 frame:SetScript('OnUpdate',function(self,dt)
     if not R.db then return end
-    -- Only read-only display scans are spread across frames. Mutating request
-    -- validation and result confirmation retain their original complete reads.
+    -- Batch completion remains active after Stop until the final read is done.
     if R.refreshJob then R.Client:AdvanceSnapshot();R:PollRefresh()end
-    if R.running or R.pending then
+    if R.running or R.pending or R.batch then
         R.performance=R.performance or {}
         local p=R.performance; p.maxFrameGap=math.max(p.maxFrameGap or 0,dt)
         if dt>0.25 then p.slowFrames=(p.slowFrames or 0)+1 end
+        -- Fast, cheap readiness checks only while a queue is active. Wakeups
+        -- coalesce on the next frame; Step still enforces all read/retry gates.
+        if R.queueWake or GetTime()>=(R.nextQueuePoll or 0) then
+            R.queueWake=nil;R.nextQueuePoll=GetTime()+R.queuePollInterval;R:Step(false)
+        end
+        elapsed=0;return
     end
     elapsed=elapsed+dt; if elapsed<0.3 then return end; elapsed=0
-    if R.pending or R.running then R:Step(false)
-    elseif R.window and R.window:IsShown() then
+    if R.window and R.window:IsShown() then
         if R.refreshJob then return end
         R:SpecViewIsCurrent() -- Cheap fallback if the custom client omits a spec-change event.
         if R.dirty and GetTime()>=(R.nextIdleRefresh or 0) then
@@ -60,16 +64,24 @@ local function commandHelp(unknown)
     if unknown then DEFAULT_CHAT_FRAME:AddMessage('RE: Roller: unknown command /rr '..unknown..'. Window and queue unchanged.')end
     DEFAULT_CHAT_FRAME:AddMessage('RE: Roller commands: /rr opens/closes the planner; /rr stop stops the queue; /rr icon resets the launcher.')
     DEFAULT_CHAT_FRAME:AddMessage('/rr perf prints the performance report in chat; /rr perf reset clears timing counters while idle (it does not print a report).')
-    DEFAULT_CHAT_FRAME:AddMessage('/rr smooth on|off changes display-read mode; /rr refresh sync refreshes while idle; /rr diagnose, /rr history, /rr help.')
+    DEFAULT_CHAT_FRAME:AddMessage('/rr pace prints recent per-roll timings; /rr smooth on|off changes display-read mode; /rr refresh sync refreshes while idle; /rr diagnose, /rr history, /rr help.')
+    DEFAULT_CHAT_FRAME:AddMessage('/rr skin titan or /rr skin clean changes appearance only; /rr skin reports the saved choice.')
+    DEFAULT_CHAT_FRAME:AddMessage('/rr batch on uses one startup/final build read; /rr batch off restores full per-roll checks. Change only while idle.')
 end
 SlashCmdList.GRIMFALLREROLL=function(msg)
     msg=string.lower(msg or ''):gsub('^%s+',''):gsub('%s+$',''):gsub('%s+',' ')
     if msg=='' then R:ToggleUI()
     elseif msg=='help' then commandHelp()
+    elseif msg=='batch on' or msg=='batch off' then
+        if not R:SetBatchMode(msg=='batch on') and DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage('RE: Roller: wait for the current batch/read to finish before changing verification mode.')end
     elseif msg=='stop' then R:Stop('Stopped by /rr stop.')
     elseif msg=='icon' then R:CreateLauncher(true)
+    elseif msg=='skin clean' or msg=='skin titan' or msg=='skin' then
+        if msg~='skin' then R:SetSkin(msg:sub(6))end
+        if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage('RE: Roller skin: '..(R.Skin.Mode()=='clean' and 'Clean' or 'Titan')..'. Use /rr skin titan or /rr skin clean.')end
     elseif msg=='diagnose' then R.Client:Diagnose()
     elseif msg=='performance' or msg=='perf' then R.Client:PerformanceReport()
+    elseif msg=='pace' then R.Client:QueueReport()
     elseif msg=='performance reset' or msg=='perf reset' then R.Client:ResetPerformance()
     elseif msg=='smooth on' then R:SetSmoothReads(true)
     elseif msg=='smooth off' then R:SetSmoothReads(false)

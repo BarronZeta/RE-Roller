@@ -129,7 +129,9 @@ function reset()
  scrollCounts={[640]=10,[639]=10}; RandomMode_RollFrame=nil
  R.pending=nil; R.running=false; R.queue={}; R.selected={}; R.spec=nil; R.ready=false; R.expected=nil; R.status='Ready'; R.done=0; R.total=0; R.manual=nil
  R.rows={}; R.byKey={}; R.eventsReady=true; R.Client.fastState=nil
- R:InitializeDB({}); R:Refresh()
+ -- Existing safety regression suites exercise the retained per-roll mode.
+ -- Test-Batch.lua explicitly enables the new default batch path.
+ R.batch=nil;R.startingBatch=nil;R:InitializeDB({batch=false}); R:Refresh()
  if R.window then
   R.window:Show()
   for _,p in pairs(R.window.panels) do p.search:SetText('') end
@@ -263,20 +265,11 @@ function RunUITests()
    assert(p.start.normalFont.fontSize==14 and p.start.disabledFont.fontSize==14 and p.start.highlightFont.fontSize==14)
   end
  end)
- test('three wrapped announcement rows measure their own height and preserve full names on hover',function()
-  local R=reset(); local w=R.window
-  assert(#w.historyRows==3 and w.historyPanel.height==100 and w.historyTitle:GetText()=='Recent Transformations')
-  assert(w.historyRows[1].text:GetText()=='Your confirmed rerolls will appear here.')
-  R.character.history={{oldName=string.rep('Long ',30),newName='Replacement',kind='talent'},{oldName='Second',newName='New',kind='ability'},{oldName='Third',newName='Last',kind='talent'}}
-  R:Render()
-  local used=0
-  for i,row in ipairs(w.historyRows) do
-   assert(row.height==row.text.height+10 and row.point[3]==0 and row.text.fontObject.fontSize==14)
-   assert(row.text.wordWrap==true and row.record==R.character.history[i] and row.parent==w.announcementCanvas)
-   used=math.max(used,row.height)
-  end
-  w.historyRows[1].scripts.OnEnter(w.historyRows[1]); assert(GameTooltip:GetText()==R.character.history[1].oldName)
-  R.character.history={}; R:Render(); assert(w.historyRows[2].text:GetText()=='' and not w.historyRows[2].record and w.historyRows[2].kind:GetText()=='')
+ test('bottom bar contains only controls without duplicate result widgets',function()
+  local R=reset();local w=R.window
+  assert(w.historyPanel.height==56 and not w.historyRows and not w.historyTitle and not w.announcementScroll)
+  for _,control in ipairs({w.skinToggle,w.fast,w.pause,w.stop,w.clear})do assert(control.parent==w.historyPanel)end
+  assert(not R.RenderAnnouncements and #calls==0)
  end)
  test('layout remains two equal columns at minimum and maximum window sizes',function()
   local R=reset(); local w=R.window
@@ -284,7 +277,7 @@ function RunUITests()
    w:SetSize(size[1],size[2]); w.scripts.OnSizeChanged()
    for _,p in pairs(w.panels) do
     assert(p.width==(size[1]-24)/2 and p.canvas.width==p.width-44)
-    assert(p.point[3]==126 and p.canvas.width>=352)
+    assert(p.point[3]==90 and p.canvas.width>=352)
    end
   end
   w:SetSize(940,680); w.scripts.OnSizeChanged(); assert(#calls==0)
@@ -318,49 +311,35 @@ function RunUITests()
   local record={oldID=101,newID=102,oldName='Old',newName='New',spent=1,kind='ability'}
   R.character.history={record}; realNotify(R,record)
   assert(not R.notice and not R.noticeQueue and not R.announcementUntil)
-  assert(not R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1].record==record)
+  assert(not R.window.historyRows and R.window.historyDrawers.ability.rows[1].record==record)
   clock=7; R.window.scripts.OnUpdate()
-  assert(not R.notice and not R.window.historyRows[1].stripe:IsShown() and R.window.historyRows[1]:IsShown() and #calls==0)
+  assert(not R.notice and not R.window.historyRows and R.window.historyDrawers.ability.rows[1]:IsShown() and #calls==0)
  end)
- test('rapid multiple results remain bounded to three measured rows and all stay in full history',function()
-  local R=reset(); local w=R.window
-  w:SetSize(840,680); w.scripts.OnSizeChanged()
+ test('rapid results are shown only in side histories and chat',function()
+  local R=reset();local w=R.window
   for i=1,10 do
-   local record={oldName=string.rep('Long ability name ',12)..i,newName=string.rep('Long replacement name ',12)..i,oldID=101,newID=102,kind=i%2==0 and 'talent' or 'ability',spent=1}
-   table.insert(R.character.history,1,record); realNotify(R,record)
+   local record={oldName='Old '..i,newName='New '..i,oldID=101,newID=102,kind=i%2==0 and 'talent' or 'ability',spent=1}
+   table.insert(R.character.history,1,record);realNotify(R,record)
   end
-  assert(#R.character.history==10 and #w.historyRows==3 and not R.notice and not R.noticeQueue)
-  assert(w.historyRows[1].record==R.character.history[1] and w.historyRows[3].record==R.character.history[3])
-  local used=0
-  for _,row in ipairs(w.historyRows) do
-   assert(row.point[3]==0 and row.text:GetStringHeight()<=row.text.height)
-   assert(math.abs((row.text.width+16)*3+18-w.announcementCanvas.width)<0.001)
-   used=math.max(used,row.height)
+  assert(#R.character.history==10 and #w.historyDrawers.ability.records==5 and #w.historyDrawers.talent.records==5)
+  assert(not w.historyRows and not R.notice and not R.noticeQueue and #calls==0)
+ end)
+ test('resizing preserves saved results and the compact single-row controls bar',function()
+  local R=reset();local w=R.window;local record={oldName='Old',newName='New',kind='ability'}
+  R.character.history={record}
+  for _,size in ipairs({{840,620},{1300,950}})do
+   w:SetSize(size[1],size[2]);w.scripts.OnSizeChanged()
+   assert(w.historyPanel.height==56 and R.character.history[1]==record)
+   assert(w.historyDrawers.ability.rows[1].record==record and not w.announcementCanvas)
   end
-  assert(w.announcementCanvas.height==used and used>w.announcementScroll.height and w.historyPanel.height==100)
-  assert(w.announcementCanvas.parent==w.announcementScroll and w.announcementScroll.parent==w.historyPanel)
-  w.announcementScroll.scripts.OnMouseWheel(w.announcementScroll,-10000)
-  assert(w.announcementScroll:GetVerticalScroll()==used-w.announcementScroll.height)
-  w.historyRows[1].scripts.OnMouseWheel(w.historyRows[1],10000)
-  assert(w.announcementScroll:GetVerticalScroll()==0 and #calls==0)
  end)
- test('resizing reflows announcements and clamps their scroll without changing saved results',function()
-  local R=reset(); local w=R.window
-  R.character.history={{oldName=string.rep('Old ',55),newName=string.rep('New ',55),kind='ability'}}
-  w:SetSize(840,680); w.scripts.OnSizeChanged(); local narrow=w.historyRows[1].height
-  w.announcementScroll.scripts.OnMouseWheel(w.announcementScroll,-1000)
-  w:SetSize(1300,950); w.scripts.OnSizeChanged()
-  assert(w.historyRows[1].height<narrow and #R.character.history==1)
-  assert(w.announcementScroll:GetVerticalScroll()<=math.max(0,w.announcementCanvas.height-w.announcementScroll.height))
-  R.character.history={}; R:Render(); assert(w.announcementScroll:GetVerticalScroll()==0 and not w.historyRows[2]:IsShown())
- end)
- test('new result scrolls announcement view to top, while ordinary renders preserve reading position',function()
-  local R=reset(); local w=R.window; w:SetSize(840,680); w.scripts.OnSizeChanged()
-  R.character.history={{oldName=string.rep('Old ',100),newName=string.rep('New ',100),kind='ability'}}; R:Render()
-  w.announcementScroll.scripts.OnMouseWheel(w.announcementScroll,-1); local offset=w.announcementScroll:GetVerticalScroll()
-  R:Render(); assert(offset>0 and w.announcementScroll:GetVerticalScroll()==offset)
-  table.insert(R.character.history,1,{oldName='Fresh',newName='Replacement',kind='talent'}); R:Render()
-  assert(w.announcementScroll:GetVerticalScroll()==0 and #calls==0)
+ test('header and column borders have a clear gap in both skins',function()
+  local R=reset();local w=R.window
+  for _,skin in ipairs({'clean','titan'})do
+   R:SetSkin(skin);w.scripts.OnSizeChanged()
+   assert(w.headerLine.points[1][3]==-54)
+   for _,p in pairs(w.panels)do assert(p.points[1][3]==-76 and p.points[2][3]==90)end
+  end
  end)
  test('late results with planner closed go to chat and history without reopening any overlay',function()
   local R=reset(); local w=R.window
@@ -368,7 +347,7 @@ function RunUITests()
   realNotify(R,record); w:Hide()
   R.character.history={record}; realNotify(R,record)
   assert(not R.notice and not R.noticeQueue and not w:IsShown() and #calls==0)
-  w:Show(); R:Render(); assert(w.historyRows[1].record==record and not R.notice)
+  w:Show(); R:Render(); assert(w.historyDrawers.ability.rows[1].record==record and not R.notice)
  end)
  test('launcher is 32px, opens on click, saves free-drag position, and does not click after dragging',function()
   local R=reset(); R.launcher=nil; R:CreateLauncher(); local b=R.launcher
@@ -423,7 +402,7 @@ function RunCoreTests()
   clock=2; R:Step(false); assert(R.done==2 and not R.running and #calls==2)
  end)
  test('actual addon event registration and result routing confirm a reroll',function()
-  local R=reset(); GrimfallRerollDB={}; Fire('ADDON_LOADED','GrimfallReroll'); assert(R.eventsReady)
+  local R=reset(); GrimfallRerollDB={batch=false}; Fire('ADDON_LOADED','GrimfallReroll'); assert(R.eventsReady)
   R:Refresh(); R:Toggle('T:201'); R:Start()
   talents={[202]={class=1,spell=302}}; scrollCounts[639]=9
   Fire('CUSTOM_CLASSLESS_WILDCARD_TALENT_LEARN',302); R:Step(false)

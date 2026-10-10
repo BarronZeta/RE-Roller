@@ -1,6 +1,28 @@
-GrimfallReroll = {version='0.9.4', selected={}, rows={}, byKey={}, queue={}, running=false, buildEpoch=0, status='Open /rr to load your build.'}
+GrimfallReroll = {version='0.9.7', selected={}, rows={}, byKey={}, queue={}, running=false, buildEpoch=0, status='Open /rr to load your build.'}
 local R=GrimfallReroll
 R.scrolls={ability=640,talent=639}
+R.queuePollInterval=0.05
+R.interRollDelay=0.1
+R.historyLimit=20
+function R:ReleaseReplacementLock(row,before)
+    -- A dormant protection must not attach itself to a newly rolled entry.
+    -- Existing learned entries and every other spec keep their protections.
+    if not before.byKey[row.key] then self:Locks(before.spec)[row.key]=nil end
+end
+-- Saved history is newest-first. Compact in place so readers keep their record
+-- identities; one kind can never evict the other kind's retained results.
+function R:TrimHistory(character)
+    local history=character.history
+    if type(history)~='table' then character.history={};return end
+    local counts={ability=0,talent=0};local write=1;local length=#history
+    for read=1,length do
+        local record=history[read];local kind=type(record)=='table' and record.kind
+        if counts[kind] and counts[kind]<self.historyLimit then
+            counts[kind]=counts[kind]+1;history[write]=record;write=write+1
+        end
+    end
+    for i=write,length do history[i]=nil end
+end
 function R:Changed() if self.Render then self:Render() end end
 function R:SetStatus(text) if self.status==text then return end; self.status=text; self:Changed() end
 function R:MeasureWork(kind,started)
@@ -12,18 +34,34 @@ function R:RecordWork(kind,ms)
     ms=math.max(0,ms or 0)
     p.calls=p.calls+1; p.totalMS=p.totalMS+ms; p.maxMS=math.max(p.maxMS,ms)
 end
+function R:WakeQueue()
+    -- Events only schedule work; never send a request from a native callback.
+    if self.running or self.pending then self.queueWake=true end
+end
+function R:QueueSnapshot(phase)
+    local started=debugprofilestop and debugprofilestop() or 0
+    local snapshot,reason=self.Client:Snapshot()
+    local ms=debugprofilestop and math.max(0,debugprofilestop()-started) or 0
+    self:RecordWork('queue_'..phase,ms)
+    return snapshot,reason,ms
+end
 function R:BuildChanged(clearMetadata)
     self.buildEpoch=(self.buildEpoch or 0)+1;self.dirty=true
     if clearMetadata and self.Client and self.Client.InvalidateMetadata then self.Client:InvalidateMetadata()end
+    self:WakeQueue()
 end
 function R:InitializeDB(db)
     if self.Client and self.Client.CancelSnapshot then self.Client:CancelSnapshot('Database context changed.')end
     self.refreshJob=nil;self.buildEpoch=(self.buildEpoch or 0)+1
+    self.queueWake=nil;self.nextQueuePoll=nil;self.queueGap=nil
     if self.Client and self.Client.InvalidateMetadata then self.Client:InvalidateMetadata()end
     self.db=db; db.schema=1; db.characters=db.characters or {}; db.fast=db.fast~=false
     local character=(UnitName('player') or '?')..' - '..(GetRealmName() or '?')
     db.characters[character]=db.characters[character] or {specs={},history={}}
     self.character=db.characters[character]
+    for _,saved in pairs(db.characters) do
+        if type(saved)=='table' then self:TrimHistory(saved) end
+    end
     self.lockContext={} -- Session-only identity for unlock confirmations; never saved.
 end
 function R:Locks(spec)
@@ -125,7 +163,7 @@ function R:Clear() if self.running or self.pending then return end; self.selecte
 function R:Stop(reason)
     self:CancelRefresh()
     local active=self.running or self.pending
-    self.running=false; self.queue={}; self.paused=false
+    self.running=false; self.queue={}; self.paused=false;self.queueGap=nil;self.queueWake=nil
     -- An already sent request cannot be recalled; continue observing it, but never send the next one.
     if reason then self.status=reason end
     if active and reason and DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage('|cffe0bd75RE: Roller by Vash:|r '..reason) end
@@ -136,7 +174,8 @@ function R:Start(kindFilter)
     if self.pending or self.running then return end
     if kindFilter and kindFilter~='ability' and kindFilter~='talent' then return end
     self:CancelRefresh()
-    local snapshot=self:Refresh(); if not snapshot then return end
+    local snapshot,why,readMS=self:QueueSnapshot('request_read')
+    snapshot=self:ApplySnapshot(snapshot,why);if not snapshot then return end
     local safe,reason=self.Client:Safe(); if not safe then self:SetStatus(reason); return end
     local totals=self:Totals()
     for kind,n in pairs(totals) do
@@ -148,14 +187,15 @@ function R:Start(kindFilter)
         self.queue[#self.queue+1]={key=row.key,spellID=row.spellID,id=row.id,kind=row.kind,name=row.name,rank=row.rank}
     end end
     if #self.queue==0 then self:SetStatus('Select unlocked entries to reroll.'); return end
-    self.total=#self.queue; self.done=0; self.running=true; self.paused=false; self.nextAt=0; self.animationWaitAt=nil
+    self.total=#self.queue; self.done=0; self.running=true; self.paused=false; self.nextAt=0; self.animationWaitAt=nil;self.queueGap=nil
     -- Pass this complete synchronous read directly to the first step. Never
     -- store a reusable startup read across frames, animation waits or pauses.
-    self.expected=snapshot; self:Step(true,snapshot)
+    self.expected=snapshot; self:Step(true,snapshot,readMS)
 end
 function R:Pause()
     if not self.running then return end
     self.paused=not self.paused
+    self:WakeQueue()
     self:SetStatus(self.paused and 'Paused. Any outstanding result is still being checked.' or 'Resuming queue...')
 end
 function R.SameBuild(a,b)
@@ -164,7 +204,7 @@ function R.SameBuild(a,b)
     for k in pairs(b.byKey) do if not a.byKey[k] then return false end end
     return true
 end
-function R:Step(clicked,startSnapshot)
+function R:Step(clicked,startSnapshot,startReadMS)
     if self.pending then self:CheckPending(); return end
     if not self.running or self.paused or GetTime()<(self.nextAt or 0) then return end
     if self.manual and not clicked then return end
@@ -175,12 +215,17 @@ function R:Step(clicked,startSnapshot)
     if self.Client:AnimationBusy() then
         if self.done>0 then
             self.animationWaitAt=self.animationWaitAt or GetTime()
+            if self.queueGap then self.queueGap.animationAt=self.queueGap.animationAt or GetTime() end
             if GetTime()-self.animationWaitAt>12 then self:Stop('Native roll presentation did not finish. Queue stopped.'); return end
-            self.nextAt=GetTime()+0.3; self:SetStatus('Result confirmed; waiting for native presentation to finish...')
+            self:SetStatus('Result confirmed; waiting for native presentation to finish...')
         else self.paused=true; self:SetStatus('An existing roll animation is active. Wait for it, then Resume.') end
         return
     end
-    local before,err
+    local gap=self.queueGap
+    if gap and gap.animationAt then
+        gap.animationMS=(gap.animationMS or 0)+math.max(0,(GetTime()-gap.animationAt)*1000);gap.animationAt=nil
+    end
+    local before,err,readMS
     if clicked and self.done==0 and self.ready and startSnapshot
         and startSnapshot==self.expected and startSnapshot==self.snapshot
         and startSnapshot.epoch==(self.buildEpoch or 0)
@@ -189,10 +234,11 @@ function R:Step(clicked,startSnapshot)
         -- yield. All live safety/lock/scroll checks below still run. If the
         -- context changed, fall back to the original complete validation.
         before=startSnapshot
+        readMS=startReadMS or 0
         self.performance=self.performance or {}
         self.performance.startupReadsReused=(self.performance.startupReadsReused or 0)+1
     else
-        before,err=self.Client:Snapshot()
+        before,err,readMS=self:QueueSnapshot('request_read')
     end
     if not before or not self.SameBuild(self.expected,before) then self:Stop(err or 'Build changed outside this queue. Refresh and select again.'); return end
     local target=#self.queue>0 and table.remove(self.queue,1)
@@ -203,14 +249,24 @@ function R:Step(clicked,startSnapshot)
     local otherCount=self.Client:Count(other)
     if not count or count<1 or otherCount==nil then self:Stop('Scroll count unavailable or no scrolls remaining.'); return end
     self.animationWaitAt=nil
-    self.pending={target=target,before=before,scrolls=count,other=other,otherCount=otherCount,at=GetTime()}
+    self.pending={target=target,before=before,scrolls=count,other=other,otherCount=otherCount,at=GetTime(),requestReadMS=readMS or 0,resultReadMS=0}
+    local pending=self.pending
     self.selected[target.key]=nil
     self.status='Rerolling '..target.name..' ('..(self.done+1)..'/'..self.total..')...'; self:Changed()
+    pending.requestAt=GetTime()
+    if gap then
+        pending.gapMS=math.max(0,(pending.requestAt-gap.confirmedAt)*1000)
+        pending.minimumMS=gap.minimumMS;pending.animationMS=gap.animationMS or 0
+        self:RecordWork('queue_gap',pending.gapMS)
+        if pending.animationMS>0 then self:RecordWork('queue_animation',pending.animationMS)end
+    end
+    self.queueGap=nil
     local ok,requested=pcall(self.Client.Request,self.Client,target)
     if not ok or not requested then
         -- Even an exception is not evidence that nothing reached the server: do not auto-retry.
         self:Stop('Reroll request was refused or blocked. No retry will be sent; checking for a late result.')
     end
+    self:WakeQueue()
 end
 function R:Result(kind,id)
     local p=self.pending; id=tonumber(id)
@@ -221,7 +277,13 @@ function R:Result(kind,id)
     if (kind~='presentation' and kind~=p.target.kind) or not id or id<=0 or (p.result and p.result~=id) then
         p.ambiguous=true; self:Stop('Unexpected reroll result. Queue stopped for review.'); return
     end
-    p.result=id; p.eventAt=GetTime(); p.nextSnapshotAt=nil
+    if not p.result then
+        p.result=id;p.eventAt=GetTime()
+        p.eventMS=math.max(0,(p.eventAt-(p.requestAt or p.at))*1000)
+        self:RecordWork('queue_event',p.eventMS)
+    end
+    -- Duplicate notifications cannot reset the full-read retry deadline.
+    self:WakeQueue()
 end
 function R:CheckPending()
     local p=self.pending; if not p then return end
@@ -237,9 +299,14 @@ function R:CheckPending()
     local spent=p.scrolls-count
     if spent==0 then return end
     if spent~=1 or other~=p.otherCount then p.ambiguous=true; self:Stop('Unexpected scroll-count change; queue stopped for review.'); return end
+    if not p.scrollMS then
+        p.scrollMS=math.max(0,(GetTime()-(p.requestAt or p.at))*1000)
+        self:RecordWork('queue_scroll',p.scrollMS)
+    end
     if p.nextSnapshotAt and GetTime()<p.nextSnapshotAt then return end
     p.nextSnapshotAt=GetTime()+1
-    local after=self.Client:Snapshot(); if not after or after.spec~=p.before.spec then return end
+    local after,_,readMS=self:QueueSnapshot('result_read');p.resultReadMS=(p.resultReadMS or 0)+readMS
+    if not after or after.spec~=p.before.spec then return end
     local row
     for _,r in ipairs(after.rows) do if r.kind==p.target.kind and (r.spellID==p.result or (r.ranks and r.ranks[p.result])) then
         if row then p.ambiguous=true; self:Stop('Ambiguous replacement; queue stopped.'); return end
@@ -259,11 +326,24 @@ function R:CheckPending()
         if not p.before.byKey[key] and key~=row.key then p.ambiguous=true; self:Stop('More than one replacement appeared; queue stopped.'); return end
     end
     local record={at=time(),spec=after.spec,kind=row.kind,oldID=p.target.spellID,oldName=p.target.name,newID=row.spellID,newName=row.name,spent=spent}
-    table.insert(self.character.history,1,record); while #self.character.history>100 do table.remove(self.character.history) end
-    self.pending=nil; self.done=(self.done or 0)+1; self.expected=after; self.nextAt=GetTime()+0.6
+    self:ReleaseReplacementLock(row,p.before)
+    table.insert(self.character.history,1,record); self:TrimHistory(self.character)
+    local confirmedAt=GetTime()
+    local confirmedMS=math.max(0,(confirmedAt-(p.requestAt or p.at))*1000)
+    self:RecordWork('queue_confirm',confirmedMS)
+    local performance=self.performance;performance.rollTimings=performance.rollTimings or {}
+    local timings=performance.rollTimings
+    timings[#timings+1]={kind=p.target.kind,eventMS=p.eventMS,scrollMS=p.scrollMS,confirmedMS=confirmedMS,
+        requestReadMS=p.requestReadMS,resultReadMS=p.resultReadMS,gapMS=p.gapMS,minimumMS=p.minimumMS,animationMS=p.animationMS}
+    while #timings>20 do table.remove(timings,1)end
+    self.pending=nil; self.done=(self.done or 0)+1; self.expected=after; self.nextAt=confirmedAt+self.interRollDelay
+    if self.running and #self.queue>0 then self.queueGap={confirmedAt=confirmedAt,minimumMS=self.interRollDelay*1000}end
     self.rows=after.rows; self.byKey=after.byKey; self.snapshot=after; self.ready=true
     if after.epoch==(self.buildEpoch or 0)then self.dirty=false;self.uiDirty=false end
     if self.Notify then self:Notify(record,true) end
+    -- No inter-roll delay is needed when there is no next request. A late
+    -- confirmation after Stop must not restart the queue or claim it finished.
+    if self.running and #self.queue==0 then self:Stop('Finished: '..self.done..' confirmed rerolls.');return end
     self.status='Confirmed: '..record.oldName..' -> '..record.newName..(self.paused and ' (paused)' or '')
     self:Changed()
 end

@@ -1,4 +1,71 @@
-RE: Roller by Vash 0.9.4 - Startup and diagnostic fixes
+RE: Roller by Vash 0.9.7 - Batch reads and compact controls
+
+NEW IN 0.9.7
+- Batch mode is now the default. One complete build read before the queue,
+  no full reads or list refreshes between rolls, and one final full read after
+  the last native result presentation. Stale final data can require retries.
+- Each request waits for its result event, exactly one matching scroll spent,
+  and native presentation completion. Only one request is in flight. The
+  original selected IDs are fixed; replacements are never added to the queue.
+- Combat, death, spec changes, locks, errors, ambiguous results and unexpected
+  scroll changes stop further requests. Pause/Stop still observe a late result.
+- Trade-off: a complete outside build change is detected at the end, not by a
+  full scan before every request. Do not manually change your build or use
+  other reroll tools during a batch. /rr batch off restores per-roll full
+  verification; /rr batch on restores batching. Change modes while idle.
+- Lists and confirmed history update after final verification (also after
+  Stop). /rr perf and /rr pace distinguish acknowledgements from final checks.
+  Expensive native calls can still cause a hitch at the start/end; no live
+  FPS or speed improvement has been measured yet.
+- Add space between the header and column borders. Replace Recent
+  Transformations with a single controls row: Skin, Quick Animation, Pause,
+  Stop and Clear. Chat and the side panels remain the result displays.
+- Smaller history icons (28 instead of 38), 110 instead of 142 unit rows.
+- Store only the newest 20 ability and 20 talent rolls per character, across
+  that character's specs. Older saved entries are pruned on load. Back up
+  GrimfallReroll SavedVariables before installing if older history is wanted.
+- New confirmed replacements do not inherit dormant current-spec locks.
+  Existing learned entries and other specs stay protected. For an already
+  hidden Molten Fury, uncheck Hide Locked, then right-click it to Unlock once.
+- 243 offline checks pass, including six-roll batches with exactly two full
+  reads, stop/error handling, final validation, retention and both skins.
+
+NEW IN 0.9.6
+- Use Skin: Titan / Skin: Clean beside Quick Animation to switch instantly.
+  /rr skin clean and /rr skin titan also work; /rr skin reports your choice.
+- Titan remains the default. Clean hides the guardian, outer stonework,
+  pillars, plinths, textured panel fills and gold-trimmed buttons, replacing
+  them with plain dark panels, thin borders and standard checkboxes.
+- Your choice is saved account-wide and applies on next login. No reload is
+  needed to switch. This does not remove artwork files from the addon.
+- Both skins retain all controls, selections, searches, per-spec locks,
+  history, scroll budgets and queue safeguards. Switching while rolling
+  does not cancel, restart, pause or submit a reroll or scan the build.
+- Clean mode reclaims the outer artwork margins and unused drawer base area.
+  Frame sizes/positions and the Titan artwork are preserved for switching back.
+- 202 offline behavior/layout tests pass. No live FPS improvement is claimed;
+  expensive game API reads and server timing are not changed by a skin choice.
+
+
+NEW IN 0.9.5
+- Reduce the minimum after-confirmation gap from 600 to 100 ms. Readiness
+  polling runs every 50 ms while active; result, bag and animation-hide events
+  wake the queue on the next frame, never send a request inside a callback.
+- Continue waiting for the full result, exact scroll change and native
+  presentation. Every subsequent request still reads and validates the build.
+  Only one request can be outstanding. No automatic request retries are added.
+- Complete the queue immediately after its final confirmed result, without
+  another inter-roll delay blocking row selection. Stop and Pause remain safe.
+- Duplicate result events cannot bypass the one-second stale-result read gate.
+  Waiting for results/scrolls/animations does not repeatedly scan the build.
+- /rr perf adds queue phase timings. /rr pace shows the last five confirmed
+  rolls plus current status; at most 20 timing records are held in memory.
+  /rr perf reset clears these counters while idle, not history or protections.
+- All 186 offline Lua 5.1 regressions pass. Modeled batches compare scheduling
+  against 0.9.4 with identical full reads, requests and scroll use. Simulations
+  are not live measurements; native read hitches and server waits remain.
+- Settings, locks, saved history, artwork, fonts and animation durations are
+  unchanged. This package requires in-game testing before claiming live gains.
 
 NEW IN 0.9.4
 - Start the first roll using one complete fresh synchronous build read instead
@@ -171,11 +238,11 @@ planner sends no further requests. Late confirmed results are still recorded.
 
 History checkboxes independently open the side panels. Mouse-wheel/scrollbar
 browses; Newest returns to the newest record. From / To icons and names each
-show their own spell tooltip. Last three transformations wrap in a bounded,
-scrollable footer.
-History retains 100 confirmed rolls TOTAL per character, across kinds/specs.
-Existing data is reused, not reset. Queue work is scheduled more efficiently
-in rc3; fresh pre-request checks and complete result validation remain required.
+show their own spell tooltip. The footer contains only queue/appearance controls.
+History retains the newest 20 ability and 20 talent rolls per character. Older
+entries are removed at load; the two types have independent allowances.
+Batch mode does full initial/final verification. Use /rr batch off for fresh
+complete pre-request/result checks on every roll.
 
 Folder: GrimfallReroll
 Saved variable: GrimfallRerollDB
